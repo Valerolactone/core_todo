@@ -16,16 +16,8 @@ jobs:
         with:
           python-version: 3.12
 
-      - name: Create virtual environment
-        run: python -m venv venv
-        working-directory: ${{ github.workspace }}
-
-      - name: Activate virtual environment and install dependencies
-        run: |
-          source venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install black flake8 mypy
+      - name: Install Python dependencies
+        run: pip install black flake8 mypy
 
       - name: Run black flake8 mypy
         uses: wearerequired/lint-action@v1
@@ -41,8 +33,6 @@ jobs:
           requirementsFiles: "requirements.txt"
 
       - name: Run pylint
-        run: |
-          source venv/bin/activate
-          pylint $(git ls-files '*.py')
-          deactivate
-        working-directory: ${{ github.workspace }}
+        uses: Silleellie/pylint-github-action@v2
+        with:
+          lint-path: core
