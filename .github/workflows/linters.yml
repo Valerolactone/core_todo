@@ -33,6 +33,6 @@ jobs:
           requirementsFiles: "requirements.txt"
 
       - name: Run pylint
-        uses: Silleellie/pylint-github-action@v2
+        uses: fylein/python-pylint-github-action@v1
         with:
           lint-path: core/core
