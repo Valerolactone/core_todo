@@ -35,4 +35,4 @@ jobs:
       - name: Run pylint
         uses: Silleellie/pylint-github-action@v2
         with:
-          lint-path: core
+          lint-path: core/core
