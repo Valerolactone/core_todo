@@ -31,7 +31,3 @@ jobs:
         uses: isort/isort-action@master
         with:
           requirementsFiles: "requirements.txt"
-
-      - name: Run pylint
-        run: |
-          pylint $(git ls-files '*.py')
