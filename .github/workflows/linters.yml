@@ -17,14 +17,21 @@ jobs:
           python-version: 3.12
 
       - name: Install Python dependencies
-        run: pip install black flake8 mypy isort pylint
+        run: pip install black flake8 mypy
 
-      - name: Run linters
+      - name: Run black flake8 mypy
         uses: wearerequired/lint-action@v1
         with:
           github_token: ${{ secrets.github_token }}
           black: true
           flake8: true
-          isort: true
           mypy: true
-          pylint: true
+
+      - name: Run isort
+        uses: isort/isort-action@master
+        with:
+          requirementsFiles: "requirements.txt"
+
+      - name: Run pylint
+        run: |
+          pylint $(git ls-files '*.py')
