@@ -1,0 +1,43 @@
+version: '3.12'
+
+services:
+  postgres_db:
+    image: postgres:latest
+    container_name: pg_core_todo
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: coretodopg
+      POSTGRES_DB: core_todo_pg
+    ports:
+      - '5432:5432'
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - core-todo-network
+
+  core-todo:
+    build:
+      context: .
+    volumes:
+      - ./core:/app
+    ports:
+      - "8000:8000"
+    networks:
+      - core-network
+    depends_on:
+      - postgres_db
+    environment:
+      DEBUG: 'True'
+      DB_NAME: core_todo_pg
+      DB_USER: postgres
+      DB_PASSWORD: coretodopg
+      DB_HOST: localhost
+      DB_PORT: 5432
+    restart: on-failure:5
+
+volumes:
+  pg_data:
+
+networks:
+  core-todo-network:
+    driver: bridge
