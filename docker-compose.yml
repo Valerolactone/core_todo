@@ -1,0 +1,33 @@
+version: '3.12'
+
+services:
+  postgres-db:
+    image: postgres:latest
+    container_name: db_for_core
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  todo_core:
+    build:
+      context: ./core
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres-db
+    environment:
+      DEBUG: ${DEBUG}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+
+
+volumes:
+  pg_data:
