@@ -23,4 +23,4 @@ jobs:
       run: poetry install
     - name: Run Tests
       run: |
-        poetry run python core/manage.py test
+        poetry run python manage.py test
