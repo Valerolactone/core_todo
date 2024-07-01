@@ -23,4 +23,5 @@ jobs:
       run: poetry install
     - name: Run Tests
       run: |
+        cd core
         poetry run python manage.py test
