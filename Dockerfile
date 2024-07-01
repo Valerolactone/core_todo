@@ -9,6 +9,6 @@ COPY pyproject.toml poetry.lock ./
 RUN apt-get update && apt-get install -y curl && apt-get clean
 RUN poetry install
 
-COPY . /app/
+COPY . .
 
-ENTRYPOINT ["/entrypoint.sh"]
+RUN chmod +x ./entrypoint.sh
