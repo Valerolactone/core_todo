@@ -24,4 +24,4 @@ jobs:
     - name: Run Tests
       run: |
         cd core
-        python manage.py test
+        poetry run python manage.py test
