@@ -18,6 +18,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
+          POSTGRES_PORT: 5432
         ports:
         -  5432:5432
         options: >-
@@ -41,12 +42,10 @@ jobs:
     - name: Install Dependencies
       run: poetry install
 
-    - name: migrate database
-      run: |
-        cd core
-        poetry run python manage.py migrate
+    - name: Setup database
+      run: psql -h postgres -U postgres -c 'CREATE DATABASE "postgres";'
       env:
-        DBURL: "postgres://postgres:postgres@localhost:5432/postgres"
+        POSTGRES_PASSWORD: postgres
 
     - name: Run Tests
       run: |
