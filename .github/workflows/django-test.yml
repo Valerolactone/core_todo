@@ -18,7 +18,8 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: coretodopg
           POSTGRES_DB: TODO_core
-        ports: [ '5432:5432' ]
+        ports:
+        -  5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s 
@@ -28,18 +29,30 @@ jobs:
     steps:
     - name: Checkout branch
       uses: actions/checkout@v4
+
     - name: Set up Python
       uses: actions/setup-python@v3
       with:
         python-version: 3.12
+
     - name: Install poetry
       uses: snok/install-poetry@v1
+
     - name: Install Dependencies
       run: poetry install
+
+    - name: Connect to PostgreSQL
+      uses: ikalnytskyi/action-setup-postgres@v6
+      with:
+        username: ci
+        password: sw0rdfish
+        database: test
+        port: 34837
+      id: postgres
+
     - name: Run Tests
-      env:
-        POSTGRES_HOST: postgres
-        POSTGRES_PORT: ${{ job.services.postgres.ports[5432] }}
       run: |
         cd core
         poetry run python manage.py test
+      env:
+        CONNECTION_STR: ${{ steps.postgres.outputs.connection-uri }}
