@@ -11,17 +11,13 @@ jobs:
 
     runs-on: ubuntu-latest
 
-    container: django:latest
-
     services:
       postgres:
         image: postgres:latest
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-          POSTGRES_PORT: 5432
-          POSTGRES_HOST: postgres
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
         ports:
         -  5432:5432
         options: >-
@@ -51,8 +47,13 @@ jobs:
         POSTGRES_PASSWORD: postgres
 
     - name: Run Tests
+      env:
+        DEBUG: ${{ secrets.DEBUG }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
+        POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+        POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+        POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       run: |
         cd core
         poetry run python manage.py test
-      env:
-        DBURL: postgres://postgres:postgres@localhost:5432/postgres
