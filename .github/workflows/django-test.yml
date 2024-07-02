@@ -10,6 +10,21 @@ jobs:
   build:
 
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports: [ '5432:5432' ]
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s 
+          --health-timeout 5s 
+          --health-retries 5
+
     steps:
     - name: Checkout branch
       uses: actions/checkout@v4
@@ -21,7 +36,11 @@ jobs:
       uses: snok/install-poetry@v1
     - name: Install Dependencies
       run: poetry install
+    - name: Run migrations
+      run: poetry run python manage.py migrate
     - name: Run Tests
+      env:
+        DATABASE_URL: 'postgres://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/postgres'
       run: |
         cd core
         poetry run python manage.py test
