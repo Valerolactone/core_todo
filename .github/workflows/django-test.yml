@@ -41,18 +41,16 @@ jobs:
     - name: Install Dependencies
       run: poetry install
 
-    - name: Connect to PostgreSQL
-      uses: ikalnytskyi/action-setup-postgres@v6
-      with:
-        username: ci
-        password: sw0rdfish
-        database: test
-        port: 34837
-      id: postgres
+    - name: migrate database
+      run: |
+        cd core
+        poetry run python manage.py migrate
+      env:
+        DBURL: "postgres://postgres:postgres@localhost:5432/TODO_core"
 
     - name: Run Tests
       run: |
         cd core
         poetry run python manage.py test
       env:
-        CONNECTION_STR: ${{ steps.postgres.outputs.connection-uri }}
+        DBURL: postgres://postgres:postgres@localhost:5432/TODO_core
