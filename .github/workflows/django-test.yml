@@ -38,7 +38,7 @@ jobs:
       run: poetry install
     - name: Run Tests
       env:
-        DATABASE_URL: 'postgres://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/postgres'
+        DATABASE_URL: 'postgres://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/TODO_core'
       run: |
         cd core
         poetry run python manage.py test
