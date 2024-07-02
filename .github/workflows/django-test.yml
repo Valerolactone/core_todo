@@ -16,8 +16,8 @@ jobs:
         image: postgres:latest
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: coretodopg
-          POSTGRES_DB: TODO_core
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
         ports:
         -  5432:5432
         options: >-
@@ -46,11 +46,11 @@ jobs:
         cd core
         poetry run python manage.py migrate
       env:
-        DBURL: "postgres://postgres:postgres@localhost:5432/TODO_core"
+        DBURL: "postgres://postgres:postgres@localhost:5432/postgres"
 
     - name: Run Tests
       run: |
         cd core
         poetry run python manage.py test
       env:
-        DBURL: postgres://postgres:postgres@localhost:5432/TODO_core
+        DBURL: postgres://postgres:postgres@localhost:5432/postgres
