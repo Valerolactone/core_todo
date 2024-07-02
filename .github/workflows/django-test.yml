@@ -36,10 +36,6 @@ jobs:
       uses: snok/install-poetry@v1
     - name: Install Dependencies
       run: poetry install
-    - name: Run migrations
-      run: |
-        cd core
-        poetry run python manage.py migrate
     - name: Run Tests
       env:
         DATABASE_URL: 'postgres://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}/postgres'
