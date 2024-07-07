@@ -21,6 +21,7 @@ services:
     depends_on:
       - postgres-db
     environment:
+      SECRET_KEY: ${SECRET_KEY}
       DEBUG: ${DEBUG}
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
