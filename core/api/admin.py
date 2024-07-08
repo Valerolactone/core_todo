@@ -1,5 +1,12 @@
 from django.contrib import admin
-from .models import ProjectModel, TaskModel, ProjectParticipantsModel, TaskSubscribersModel, TasksAttachmentsModel
+
+from .models import (
+    ProjectModel,
+    ProjectParticipantsModel,
+    TaskModel,
+    TasksAttachmentsModel,
+    TaskSubscribersModel,
+)
 
 
 @admin.register(ProjectModel)

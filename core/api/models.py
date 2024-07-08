@@ -1,6 +1,5 @@
 from django.db import models
 
-
 TASK_STATUS = (
     ('open', 'Open'),
     ('in progress', 'In Progress'),
@@ -14,7 +13,7 @@ class ProjectModel(models.Model):
     project_pk = models.AutoField(primary_key=True, editable=False)
     title = models.CharField(max_length=100, unique=True)
     description = models.TextField()
-    logo = models.URLField(max_length=200)
+    logo = models.URLField(max_length=200, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True)
     active = models.BooleanField(default=True)
@@ -34,7 +33,10 @@ class TaskModel(models.Model):
     project = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
 
     class Meta:
-        unique_together = ('title', 'project',)
+        unique_together = (
+            'title',
+            'project',
+        )
 
 
 class TaskSubscribersModel(models.Model):
