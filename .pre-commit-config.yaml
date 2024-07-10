@@ -28,6 +28,7 @@ repos:
       entry: poetry run flake8
       language: system
       types: [ file, python ]
+      args: [--ignore=E501]
       exclude: |
         (?x)^(
         ^core/api/migrations/.*
@@ -39,7 +40,7 @@ repos:
       entry: poetry run pylint
       language: system
       types: [ file, python ]
-      args: [--disable=C, --disable=too-few-public-methods]
+      args: [--disable=C, --disable=no-member, --disable=too-few-public-methods, --disable=W0613]
       exclude: |
         (?x)^(
         ^core/api/migrations/.*|
