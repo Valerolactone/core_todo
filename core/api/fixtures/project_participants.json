@@ -1,0 +1,18 @@
+[
+    {
+        "model": "api.projectparticipantsmodel",
+        "pk": 1,
+        "fields": {
+            "project_id": 1,
+            "participant_id": 1
+            }
+    },
+    {
+        "model": "api.projectparticipantsmodel",
+        "pk": 2,
+        "fields": {
+            "project_id": 2,
+            "participant_id": 1
+            }
+    }
+]

@@ -1,48 +1,50 @@
 repos:
-- repo: local
-  hooks:
-    - id: black
-      name: black
-      entry: poetry run black
-      language: system
-      types: [file, python]
-      args: [--skip-string-normalization]
+  - repo: local
+    hooks:
+      - id: black
+        name: black
+        entry: poetry run black
+        language: system
+        types: [ file, python ]
+        args: [ --skip-string-normalization ]
 
-    - id: isort
-      name: isort
-      entry: poetry run isort
-      language: system
-      types: [ file, python ]
-      args: [--profile=black]
+      - id: isort
+        name: isort
+        entry: poetry run isort
+        language: system
+        types: [ file, python ]
+        args: [ --profile=black ]
 
-    - id: mypy
-      name: mypy
-      entry: poetry run mypy
-      language: system
-      types: [ file, python ]
-      args: [--ignore-missing-imports]
-      exclude: migrations
+      - id: mypy
+        name: mypy
+        entry: poetry run mypy
+        language: system
+        types: [ file, python ]
+        args: [ --ignore-missing-imports ]
+        exclude: migrations
 
-    - id: flake8
-      name: flake8
-      entry: poetry run flake8
-      language: system
-      types: [ file, python ]
-      args: [--ignore=E501]
-      exclude: |
-        (?x)^(
-        ^core/api/migrations/.*
-        )$ |
-        settings.py
+      - id: flake8
+        name: flake8
+        entry: poetry run flake8
+        language: system
+        types: [ file, python ]
+        args: [ --ignore=E501]
+        exclude: |
+          (?x)^(
+          ^core/api/migrations/.*
+          )$ |
+          settings.py |
+          create_test_db.py         
 
-    - id: pylint
-      name: pylint
-      entry: poetry run pylint
-      language: system
-      types: [ file, python ]
-      args: [--disable=C, --disable=no-member, --disable=too-few-public-methods, --disable=W0613]
-      exclude: |
-        (?x)^(
-        ^core/api/migrations/.*|
-        )$ |
-        manage.py
+      - id: pylint
+        name: pylint
+        entry: poetry run pylint
+        language: system
+        types: [ file, python ]
+        args: [ --disable=C, --disable=no-member, --disable=too-few-public-methods, --disable=W0613, --disable=W0105]
+        exclude: |
+          (?x)^(
+          ^core/api/migrations/.*|
+          )$ |
+          manage.py |
+          create_test_db.py   

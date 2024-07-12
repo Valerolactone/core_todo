@@ -1,0 +1,26 @@
+[
+    {
+        "model": "api.projectmodel",
+        "pk": 1,
+        "fields": {
+           "title": "First project for test.",
+            "description": "Description for the first project for test.",
+            "logo": null,
+            "created_at": "2024-07-09T12:30:54.743Z",
+            "deleted_at": null,
+            "active": true
+            }
+    },
+    {
+        "model": "api.projectmodel",
+        "pk": 2,
+        "fields": {
+           "title": "Second project for test.",
+            "description": "Description for the second project for test.",
+            "logo": null,
+            "created_at": "2024-07-09T12:30:54.743Z",
+            "deleted_at": null,
+            "active": true
+            }
+    }
+]

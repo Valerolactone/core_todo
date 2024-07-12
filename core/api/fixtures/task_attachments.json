@@ -1,0 +1,18 @@
+[
+    {
+        "model": "api.tasksattachmentsmodel",
+        "pk": 1,
+        "fields": {
+            "task_id": 1,
+            "attachment": "http://127.0.0.1:8000/admin/api/tasksattachmentsmodel/add/"
+            }
+    },
+    {
+        "model": "api.tasksattachmentsmodel",
+        "pk": 2,
+        "fields": {
+            "task_id": 1,
+            "attachment": "http://127.0.0.1:8000/admin/api/"
+            }
+    }
+]
