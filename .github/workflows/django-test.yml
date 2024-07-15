@@ -41,11 +41,6 @@ jobs:
     - name: Install Dependencies
       run: poetry install
 
-    - name: Migrate database
-      run: |
-        cd core
-        poetry run python manage.py migrate
-
     - name: Create db tables
       run: poetry run python create_test_db.py
 
