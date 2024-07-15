@@ -1,5 +1,4 @@
 import psycopg2
-from config import load_config
 
 
 def create_tables():
@@ -62,8 +61,13 @@ def create_tables():
         """,
     )
     try:
-        config = load_config()
-        with psycopg2.connect(**config) as conn:
+        with psycopg2.connect(
+            user="postgres",
+            password="postgres",
+            database="postgres",
+            host="localhost",
+            port="5432",
+        ) as conn:
             with conn.cursor() as cur:
                 for command in commands:
                     cur.execute(command)

@@ -118,8 +118,7 @@ class ProjectTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data,
                          {'Status': 'Success', 'Message': f"Record about task Test task1 deleted."})
-        self.assertEqual(TaskModel.objects.get(task_pk=1).active, False)
-'''
+        self.assertEqual(TaskModel.objects.get(task_pk=1).active, False)'''
 
 
 class TaskSubscribersTests(APITestCase):

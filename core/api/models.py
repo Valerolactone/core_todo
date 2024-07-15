@@ -9,6 +9,11 @@ TASK_STATUS = (
 )
 
 
+class ProjectManager(models.Manager):
+    '''def get_by_natural_key(self, title):
+    return self.get(title=title)'''
+
+
 class ProjectModel(models.Model):
     project_pk = models.AutoField(primary_key=True, editable=False)
     title = models.CharField(max_length=100, unique=True)
@@ -20,6 +25,9 @@ class ProjectModel(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    '''def natural_key(self):
+        return (self.title,)'''
 
 
 class TaskModel(models.Model):

@@ -19,6 +19,9 @@ jobs:
       - name: Install Python dependencies
         run: pip install black flake8 mypy
 
+      - name: Freeze dependencies
+        run: pip freeze > requirements.txt
+
       - name: Run black flake8 mypy
         uses: wearerequired/lint-action@v1
         with:
@@ -29,6 +32,8 @@ jobs:
 
       - name: Run isort
         uses: isort/isort-action@master
+        with:
+          requirementsFiles: "requirements.txt"
 
       - name: Run pylint
         uses: fylein/python-pylint-github-action@v1
