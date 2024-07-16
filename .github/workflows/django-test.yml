@@ -17,7 +17,7 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
+          POSTGRES_DB: postgres
         ports:
         -  5433:5432
         options: >-
@@ -47,6 +47,13 @@ jobs:
         poetry run python manage.py migrate
 
     - name: Run Tests
+      env:
+        DEBUG: ${{ secrets.DEBUG }}
+        SECRET_KEY: ${{ secrets.SECRET_KEY }}
+        DB_HOST: ${{ secrets.POSTGRES_HOST }}
+        DB_NAME: ${{ secrets.POSTGRES_DB }}
+        DB_USER: ${{ secrets.POSTGRES_USER }}
+        DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       run: |
         cd core
         poetry run python manage.py test
