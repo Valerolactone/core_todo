@@ -9,25 +9,17 @@ TASK_STATUS = (
 )
 
 
-class ProjectManager(models.Manager):
-    '''def get_by_natural_key(self, title):
-    return self.get(title=title)'''
-
-
 class ProjectModel(models.Model):
     project_pk = models.AutoField(primary_key=True, editable=False)
     title = models.CharField(max_length=100, unique=True)
     description = models.TextField()
-    logo = models.URLField(max_length=200, null=True, blank=True)
+    logo_id = models.PositiveIntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
 
     class Meta:
         ordering = ['-created_at']
-
-    '''def natural_key(self):
-        return (self.title,)'''
 
 
 class TaskModel(models.Model):
@@ -41,12 +33,12 @@ class TaskModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
-    project = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
+    project_id = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = (
             'title',
-            'project',
+            'project_id',
         )
 
 
@@ -66,4 +58,4 @@ class ProjectParticipantsModel(models.Model):
 class TasksAttachmentsModel(models.Model):
     attachment_pk = models.AutoField(primary_key=True, editable=False)
     task_id = models.ForeignKey(TaskModel, on_delete=models.CASCADE)
-    attachment = models.URLField(max_length=200)
+    attachment_id = models.PositiveIntegerField()

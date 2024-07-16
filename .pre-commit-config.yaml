@@ -34,17 +34,15 @@ repos:
           ^core/api/migrations/.*
           )$ |
           settings.py |
-          create_test_db.py         
 
       - id: pylint
         name: pylint
         entry: poetry run pylint
         language: system
         types: [ file, python ]
-        args: [ --disable=C, --disable=no-member, --disable=too-few-public-methods, --disable=W0613, --disable=W0105]
+        args: [ --disable=C, --disable=no-member, --disable=too-few-public-methods, --disable=W0613]
         exclude: |
           (?x)^(
           ^core/api/migrations/.*|
           )$ |
           manage.py |
-          create_test_db.py   
