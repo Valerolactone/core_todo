@@ -305,7 +305,7 @@ class TaskViewSetTests(APITestCase):
         response = self.client.post(reverse('task-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertNotIn('active', response.data.keys())
-        self.assertNotIn('deleted_at', response.data.keys())
+        self.assertIn('deleted_at', response.data.keys())
         self.assertTrue(TaskModel.objects.filter(title='Test Task 4').exists())
 
     def test_update_task(self):
