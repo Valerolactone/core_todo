@@ -34,11 +34,14 @@ class ProjectViewSetTests(APITestCase):
         response = self.client.get(reverse('project-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            len(response.data), ProjectModel.objects.filter(active=True).count()
+            len(response.data.get('results')),
+            ProjectModel.objects.filter(active=True).count(),
         )
-        self.assertIn(('title', self.project_1.title), response.data[-1].items())
-        self.assertNotIn('active', response.data[-1].keys())
-        self.assertNotIn('deleted_at', response.data[-1].keys())
+        self.assertIn(
+            ('title', self.project_1.title), response.data.get('results')[-1].items()
+        )
+        self.assertNotIn('active', response.data.get('results')[-1].keys())
+        self.assertNotIn('deleted_at', response.data.get('results')[-1].keys())
 
     def test_get_nonexistent_project(self):
         """
@@ -110,7 +113,7 @@ class ProjectViewSetTests(APITestCase):
         """
         response = self.client.get(reverse('project-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for obj in response.data:
+        for obj in response.data.get('results'):
             self.assertNotIn(('active', False), obj.items())
 
 
@@ -136,10 +139,14 @@ class AdminProjectViewSetTests(APITestCase):
         """
         response = self.client.get(reverse('admin_project-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), ProjectModel.objects.all().count())
-        self.assertIn(('title', self.project_1.title), response.data[-1].items())
-        self.assertIn('active', response.data[-1].keys())
-        self.assertIn('deleted_at', response.data[-1].keys())
+        self.assertEqual(
+            len(response.data.get('results')), ProjectModel.objects.all().count()
+        )
+        self.assertIn(
+            ('title', self.project_1.title), response.data.get('results')[-1].items()
+        )
+        self.assertIn('active', response.data.get('results')[-1].keys())
+        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
 
     def test_get_nonexistent_project(self):
         """
@@ -266,11 +273,14 @@ class TaskViewSetTests(APITestCase):
         response = self.client.get(reverse('task-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            len(response.data), TaskModel.objects.filter(active=True).count()
+            len(response.data.get('results')),
+            TaskModel.objects.filter(active=True).count(),
         )
-        self.assertIn(('title', self.task_2.title), response.data[-1].items())
-        self.assertNotIn('active', response.data[-1].keys())
-        self.assertNotIn('deleted_at', response.data[-1].keys())
+        self.assertIn(
+            ('title', self.task_2.title), response.data.get('results')[-1].items()
+        )
+        self.assertNotIn('active', response.data.get('results')[-1].keys())
+        self.assertNotIn('deleted_at', response.data.get('results')[-1].keys())
 
     def test_get_nonexistent_task(self):
         """
@@ -344,7 +354,7 @@ class TaskViewSetTests(APITestCase):
         """
         response = self.client.get(reverse('task-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for obj in response.data:
+        for obj in response.data.get('results'):
             self.assertNotIn(('active', False), obj.items())
 
 
@@ -379,10 +389,14 @@ class AdminTaskViewSetTests(APITestCase):
         """
         response = self.client.get(reverse('admin_task-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), TaskModel.objects.all().count())
-        self.assertIn(('title', self.task_3.title), response.data[-1].items())
-        self.assertIn('active', response.data[-1].keys())
-        self.assertIn('deleted_at', response.data[-1].keys())
+        self.assertEqual(
+            len(response.data.get('results')), TaskModel.objects.all().count()
+        )
+        self.assertIn(
+            ('title', self.task_3.title), response.data.get('results')[-1].items()
+        )
+        self.assertIn('active', response.data.get('results')[-1].keys())
+        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
 
     def test_get_nonexistent_task(self):
         """
@@ -501,11 +515,16 @@ class TaskSubscribersViewSetTests(APITestCase):
         """
         response = self.client.get(reverse('task_subscription-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), TaskSubscribersModel.objects.all().count())
-        self.assertIn(('task_id', self.task.task_pk), response.data[-1].items())
+        self.assertEqual(
+            len(response.data.get('results')),
+            TaskSubscribersModel.objects.all().count(),
+        )
+        self.assertIn(
+            ('task_id', self.task.task_pk), response.data.get('results')[-1].items()
+        )
         self.assertIn(
             ('subscriber_id', self.subscription_2.subscriber_id),
-            response.data[-1].items(),
+            response.data.get('results')[-1].items(),
         )
 
     def test_get_nonexistent_subscription(self):
@@ -598,12 +617,15 @@ class TaskAttachmentsViewSetTests(APITestCase):
         response = self.client.get(reverse('task_attachment-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            len(response.data), TasksAttachmentsModel.objects.all().count()
+            len(response.data.get('results')),
+            TasksAttachmentsModel.objects.all().count(),
         )
-        self.assertIn(('task_id', self.task.task_pk), response.data[-1].items())
+        self.assertIn(
+            ('task_id', self.task.task_pk), response.data.get('results')[-1].items()
+        )
         self.assertIn(
             ('attachment_id', self.attachment_2.attachment_id),
-            response.data[-1].items(),
+            response.data.get('results')[-1].items(),
         )
 
     def test_get_nonexistent_attachment(self):
@@ -687,14 +709,16 @@ class ProjectParticipantsViewSetTests(APITestCase):
         response = self.client.get(reverse('project_participant-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
-            len(response.data), ProjectParticipantsModel.objects.all().count()
+            len(response.data.get('results')),
+            ProjectParticipantsModel.objects.all().count(),
         )
         self.assertIn(
-            ('project_id', self.project.project_pk), response.data[-1].items()
+            ('project_id', self.project.project_pk),
+            response.data.get('results')[-1].items(),
         )
         self.assertIn(
             ('participant_id', self.participation_2.participant_id),
-            response.data[-1].items(),
+            response.data.get('results')[-1].items(),
         )
 
     def test_get_nonexistent_participation(self):
