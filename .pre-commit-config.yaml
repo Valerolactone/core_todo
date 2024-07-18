@@ -33,7 +33,6 @@ repos:
           (?x)^(
           ^core/api/migrations/.*
           )$ |
-          settings.py |
 
       - id: pylint
         name: pylint

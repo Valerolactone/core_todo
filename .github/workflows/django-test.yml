@@ -56,4 +56,4 @@ jobs:
         DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       run: |
         cd core
-        poetry run python manage.py test
+        poetry run python manage.py test --settings=core.settings.dev
