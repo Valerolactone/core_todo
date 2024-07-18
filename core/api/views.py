@@ -37,7 +37,7 @@ class ProjectViewSet(
 
     def perform_destroy(self, instance):
         instance.active = False
-        instance.deleted_at = datetime.now()
+        instance.deleted_at = datetime.utcnow()
         instance.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -56,22 +56,9 @@ class AdminProjectViewSet(
     def get_queryset(self):
         return ProjectModel.objects.all()
 
-    def perform_update(self, serializer):
-        instance = self.get_object()
-        if instance.active is not self.request.data.get('active'):
-            (
-                serializer.save(deleted_at=None)
-                if self.request.data.get('active')
-                else serializer.save(deleted_at=datetime.now())
-            )
-        else:
-            serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
     def perform_destroy(self, instance):
         instance.active = False
-        instance.deleted_at = datetime.now()
+        instance.deleted_at = datetime.utcnow()
         instance.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -95,7 +82,7 @@ class TaskViewSet(
 
     def perform_destroy(self, instance):
         instance.active = False
-        instance.deleted_at = datetime.now()
+        instance.deleted_at = datetime.utcnow()
         instance.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -117,22 +104,9 @@ class AdminTaskViewSet(
     def get_queryset(self):
         return TaskModel.objects.all()
 
-    def perform_update(self, serializer):
-        instance = self.get_object()
-        if instance.active is not self.request.data.get('active'):
-            (
-                serializer.save(deleted_at=None)
-                if self.request.data.get('active')
-                else serializer.save(deleted_at=datetime.now())
-            )
-        else:
-            serializer.save()
-
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
     def perform_destroy(self, instance):
         instance.active = False
-        instance.deleted_at = datetime.now()
+        instance.deleted_at = datetime.utcnow()
         instance.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)

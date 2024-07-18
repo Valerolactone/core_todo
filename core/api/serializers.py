@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from rest_framework import serializers
 
 from .models import (
@@ -13,7 +15,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectModel
         fields = ('project_pk', 'title', 'description', 'logo_id', 'created_at')
-        read_only_fields = ['project_pk', 'created_at']
+        read_only_fields = ['created_at']
 
 
 class AdminProjectSerializer(serializers.ModelSerializer):
@@ -28,7 +30,22 @@ class AdminProjectSerializer(serializers.ModelSerializer):
             'deleted_at',
             'active',
         )
-        read_only_fields = ['project_pk', 'created_at', 'deleted_at']
+        read_only_fields = ['created_at', 'deleted_at']
+
+    def update(self, instance, validated_data):
+        self.fields['deleted_at'].read_only = False
+
+        if instance.active is not self.validated_data.get('active'):
+            instance.deleted_at = (
+                None if self.validated_data.get('active') else datetime.utcnow()
+            )
+
+        instance = super(AdminProjectSerializer, self).update(instance, validated_data)
+        instance.save()
+
+        self.fields['deleted_at'].read_only = True
+
+        return instance
 
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -45,10 +62,11 @@ class TaskSerializer(serializers.ModelSerializer):
             'created_at',
             'project_id',
         )
-        read_only_fields = ['task_pk', 'created_at', 'project']
+        read_only_fields = ['created_at', 'project']
 
 
 class AdminTaskSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = TaskModel
         fields = (
@@ -64,7 +82,22 @@ class AdminTaskSerializer(serializers.ModelSerializer):
             'active',
             'project_id',
         )
-        read_only_fields = ['task_pk', 'created_at', 'deleted_at', 'project']
+        read_only_fields = ['created_at', 'deleted_at', 'project']
+
+    def update(self, instance, validated_data):
+        self.fields['deleted_at'].read_only = False
+
+        if instance.active is not self.validated_data.get('active'):
+            instance.deleted_at = (
+                None if self.validated_data.get('active') else datetime.utcnow()
+            )
+
+        instance = super(AdminTaskSerializer, self).update(instance, validated_data)
+        instance.save()
+
+        self.fields['deleted_at'].read_only = True
+
+        return instance
 
 
 class TaskSubscribersSerializer(serializers.ModelSerializer):
