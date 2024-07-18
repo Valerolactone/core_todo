@@ -44,7 +44,7 @@ jobs:
     - name: Run migrations
       run: |
         cd core
-        poetry run python manage.py migrate
+        poetry run python manage.py migrate --settings=core.settings.dev
 
     - name: Run Tests
       env:
