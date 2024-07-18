@@ -12,44 +12,74 @@ from .models import (
 class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectModel
-        exclude = ('deleted_at', 'active')
+        fields = ('project_pk', 'title', 'description', 'logo_id', 'created_at')
         read_only_fields = ['project_pk', 'created_at']
 
 
 class AdminProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectModel
-        fields = '__all__'
+        fields = (
+            'project_pk',
+            'title',
+            'description',
+            'logo_id',
+            'created_at',
+            'deleted_at',
+            'active',
+        )
         read_only_fields = ['project_pk', 'created_at', 'deleted_at']
 
 
 class TaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskModel
-        exclude = ('deleted_at', 'active')
+        fields = (
+            'task_pk',
+            'title',
+            'description',
+            'status',
+            'executor_id',
+            'executor_name',
+            'due_date',
+            'created_at',
+            'project_id',
+        )
         read_only_fields = ['task_pk', 'created_at', 'project']
 
 
 class AdminTaskSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskModel
-        fields = '__all__'
+        fields = (
+            'task_pk',
+            'title',
+            'description',
+            'status',
+            'executor_id',
+            'executor_name',
+            'due_date',
+            'created_at',
+            'deleted_at',
+            'active',
+            'project_id',
+        )
         read_only_fields = ['task_pk', 'created_at', 'deleted_at', 'project']
 
 
 class TaskSubscribersSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskSubscribersModel
-        fields = '__all__'
+        fields = ('subscription_pk', 'task_id', 'task_status', 'subscriber_id')
 
 
 class ProjectParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectParticipantsModel
-        fields = '__all__'
+        fields = ('participation_pk', 'project_id', 'participant_id')
 
 
 class TasksAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = TasksAttachmentsModel
-        fields = '__all__'
+        fields = ('attachment_pk', 'task_id', 'attachment_id')

@@ -86,7 +86,7 @@ class ProjectViewSetTests(APITestCase):
             {'title': 'Test Project 4'},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(ProjectModel.objects.filter(title='Test Project 2').exists())
         self.assertTrue(ProjectModel.objects.filter(title='Test Project 4').exists())
 
@@ -96,14 +96,7 @@ class ProjectViewSetTests(APITestCase):
         """
         pk = self.project_2.project_pk
         response = self.client.delete(reverse('project-detail', kwargs={'pk': pk}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data,
-            {
-                'Status': 'Success',
-                'Message': "Record about project Test Project 2 deleted.",
-            },
-        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ProjectModel.objects.get(project_pk=pk).active)
         self.assertIsNotNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
 
@@ -203,7 +196,7 @@ class AdminProjectViewSetTests(APITestCase):
             {'title': 'Test Project 4'},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(ProjectModel.objects.filter(title='Test Project 1').exists())
         self.assertTrue(ProjectModel.objects.filter(title='Test Project 4').exists())
 
@@ -215,14 +208,7 @@ class AdminProjectViewSetTests(APITestCase):
         response = self.client.delete(
             reverse('admin_project-detail', kwargs={'pk': pk})
         )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data,
-            {
-                'Status': 'Success',
-                'Message': "Record about project Test Project 2 deleted.",
-            },
-        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(ProjectModel.objects.get(project_pk=pk).active)
         self.assertIsNotNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
 
@@ -236,7 +222,7 @@ class AdminProjectViewSetTests(APITestCase):
             {'active': True},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(ProjectModel.objects.get(project_pk=pk).active)
         self.assertIsNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
 
@@ -327,7 +313,7 @@ class TaskViewSetTests(APITestCase):
             {'status': 'closed'},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(TaskModel.objects.filter(status='open').exists())
         self.assertTrue(TaskModel.objects.filter(status='closed').exists())
 
@@ -337,14 +323,7 @@ class TaskViewSetTests(APITestCase):
         """
         pk = self.task_2.task_pk
         response = self.client.delete(reverse('task-detail', kwargs={'pk': pk}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data,
-            {
-                'Status': 'Success',
-                'Message': "Record about task Test Task 2 deleted.",
-            },
-        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(TaskModel.objects.get(task_pk=pk).active)
         self.assertIsNotNone(TaskModel.objects.get(task_pk=pk).deleted_at)
 
@@ -455,7 +434,7 @@ class AdminTaskViewSetTests(APITestCase):
             {'status': 'closed'},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(TaskModel.objects.filter(status='open').exists())
         self.assertTrue(TaskModel.objects.filter(status='closed').exists())
 
@@ -465,14 +444,7 @@ class AdminTaskViewSetTests(APITestCase):
         """
         pk = self.task_2.task_pk
         response = self.client.delete(reverse('admin_task-detail', kwargs={'pk': pk}))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            response.data,
-            {
-                'Status': 'Success',
-                'Message': "Record about task Test Task 2 deleted.",
-            },
-        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(TaskModel.objects.get(task_pk=pk).active)
         self.assertIsNotNone(TaskModel.objects.get(task_pk=pk).deleted_at)
 
@@ -486,7 +458,7 @@ class AdminTaskViewSetTests(APITestCase):
             {'active': True},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(TaskModel.objects.get(task_pk=pk).active)
         self.assertIsNone(TaskModel.objects.get(task_pk=pk).deleted_at)
 
