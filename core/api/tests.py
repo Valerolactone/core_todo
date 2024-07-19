@@ -217,8 +217,8 @@ class AdminProjectViewSetTests(APITestCase):
         Ensure we can update 'active' field of project object.
         """
         pk = self.project_3.project_pk
-        response = self.client.patch(
-            reverse('admin_project-detail', kwargs={'pk': pk}),
+        response = self.client.put(
+            reverse('admin_project_activation', kwargs={'pk': pk}),
             {'active': True},
             format='json',
         )
@@ -453,8 +453,8 @@ class AdminTaskViewSetTests(APITestCase):
         Ensure we can update 'active' field of task object.
         """
         pk = self.task_3.task_pk
-        response = self.client.patch(
-            reverse('admin_task-detail', kwargs={'pk': pk}),
+        response = self.client.put(
+            reverse('admin_task_activation', kwargs={'pk': pk}),
             {'active': True},
             format='json',
         )

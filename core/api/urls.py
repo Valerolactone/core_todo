@@ -1,7 +1,10 @@
+from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
+    AdminProjectActivationView,
     AdminProjectViewSet,
+    AdminTaskActivationView,
     AdminTaskViewSet,
     ProjectParticipantsViewSet,
     ProjectViewSet,
@@ -25,4 +28,17 @@ router.register(
     r'task_attachments', TasksAttachmentsViewSet, basename='task_attachment'
 )
 
-urlpatterns = router.urls
+urlpatterns = [
+    path(
+        'admin_project_activation/<int:pk>/',
+        AdminProjectActivationView.as_view(),
+        name='admin_project_activation',
+    ),
+    path(
+        'admin_task_activation/<int:pk>/',
+        AdminTaskActivationView.as_view(),
+        name='admin_task_activation',
+    ),
+]
+
+urlpatterns += router.urls

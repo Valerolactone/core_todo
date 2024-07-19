@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, status, viewsets
+from rest_framework import filters, mixins, viewsets
+from rest_framework.generics import UpdateAPIView
 from rest_framework.response import Response
 
 from .models import (
@@ -12,7 +13,9 @@ from .models import (
     TaskSubscribersModel,
 )
 from .serializers import (
+    AdminProjectActivationSerializer,
     AdminProjectSerializer,
+    AdminTaskActivationSerializer,
     AdminTaskSerializer,
     ProjectParticipantsSerializer,
     ProjectSerializer,
@@ -40,8 +43,6 @@ class ProjectViewSet(
         instance.deleted_at = datetime.utcnow()
         instance.save()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class AdminProjectViewSet(
     mixins.ListModelMixin,
@@ -61,7 +62,24 @@ class AdminProjectViewSet(
         instance.deleted_at = datetime.utcnow()
         instance.save()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class AdminProjectActivationView(UpdateAPIView):
+    serializer_class = AdminProjectActivationSerializer
+
+    def get_queryset(self):
+        return ProjectModel.objects.all()
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.active != self.request.data.get('active'):
+            instance.deleted_at = (
+                None if self.request.data.get('active') else datetime.utcnow()
+            )
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
 
 
 class TaskViewSet(
@@ -85,8 +103,6 @@ class TaskViewSet(
         instance.deleted_at = datetime.utcnow()
         instance.save()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
 
 class AdminTaskViewSet(
     mixins.ListModelMixin,
@@ -109,7 +125,24 @@ class AdminTaskViewSet(
         instance.deleted_at = datetime.utcnow()
         instance.save()
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class AdminTaskActivationView(UpdateAPIView):
+    serializer_class = AdminTaskActivationSerializer
+
+    def get_queryset(self):
+        return TaskModel.objects.all()
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if instance.active != self.request.data.get('active'):
+            instance.deleted_at = (
+                None if self.request.data.get('active') else datetime.utcnow()
+            )
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        return Response(serializer.data)
 
 
 class TaskSubscribersViewSet(
