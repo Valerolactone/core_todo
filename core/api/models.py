@@ -33,29 +33,29 @@ class TaskModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
-    project_id = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
+    project = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
 
     class Meta:
         unique_together = (
             'title',
-            'project_id',
+            'project',
         )
 
 
 class TaskSubscribersModel(models.Model):
     subscription_pk = models.AutoField(primary_key=True, editable=False)
-    task_id = models.ForeignKey(TaskModel, on_delete=models.CASCADE)
+    task = models.ForeignKey(TaskModel, on_delete=models.CASCADE)
     task_status = models.CharField(choices=TASK_STATUS)
     subscriber_id = models.PositiveIntegerField()
 
 
 class ProjectParticipantsModel(models.Model):
     participation_pk = models.AutoField(primary_key=True, editable=False)
-    project_id = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
+    project = models.ForeignKey(ProjectModel, on_delete=models.CASCADE)
     participant_id = models.PositiveIntegerField()
 
 
 class TasksAttachmentsModel(models.Model):
     attachment_pk = models.AutoField(primary_key=True, editable=False)
-    task_id = models.ForeignKey(TaskModel, on_delete=models.CASCADE)
+    task = models.ForeignKey(TaskModel, on_delete=models.CASCADE)
     attachment_id = models.PositiveIntegerField()

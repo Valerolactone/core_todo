@@ -52,9 +52,9 @@ class TaskSerializer(serializers.ModelSerializer):
             'executor_name',
             'due_date',
             'created_at',
-            'project_id',
+            'project',
         )
-        read_only_fields = ['created_at', 'project']
+        read_only_fields = ['created_at']
 
 
 class AdminTaskSerializer(serializers.ModelSerializer):
@@ -71,9 +71,9 @@ class AdminTaskSerializer(serializers.ModelSerializer):
             'created_at',
             'deleted_at',
             'active',
-            'project_id',
+            'project',
         )
-        read_only_fields = ['created_at', 'deleted_at', 'project', 'active']
+        read_only_fields = ['created_at', 'deleted_at', 'active']
 
 
 class AdminTaskActivationSerializer(serializers.ModelSerializer):
@@ -86,16 +86,16 @@ class AdminTaskActivationSerializer(serializers.ModelSerializer):
 class TaskSubscribersSerializer(serializers.ModelSerializer):
     class Meta:
         model = TaskSubscribersModel
-        fields = ('subscription_pk', 'task_id', 'task_status', 'subscriber_id')
+        fields = ('subscription_pk', 'task', 'task_status', 'subscriber_id')
 
 
 class ProjectParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectParticipantsModel
-        fields = ('participation_pk', 'project_id', 'participant_id')
+        fields = ('participation_pk', 'project', 'participant_id')
 
 
 class TasksAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = TasksAttachmentsModel
-        fields = ('attachment_pk', 'task_id', 'attachment_id')
+        fields = ('attachment_pk', 'task', 'attachment_id')

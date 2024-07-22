@@ -236,19 +236,19 @@ class TaskViewSetTests(APITestCase):
             title='Test Task 1',
             description='Description for the first test task.',
             status='open',
-            project_id=self.project,
+            project=self.project,
         )
         self.task_2 = TaskModel.objects.create(
             title='Test Task 2',
             description='Description for the second test task.',
             status='in progress',
-            project_id=self.project,
+            project=self.project,
         )
         self.task_3 = TaskModel.objects.create(
             title='Test Inactive Task',
             description='Description for the inactive test task.',
             status='in progress',
-            project_id=self.project,
+            project=self.project,
             active=False,
         )
 
@@ -295,7 +295,7 @@ class TaskViewSetTests(APITestCase):
         data = {
             'title': 'Test Task 4',
             'description': 'Description for test task.',
-            'project_id': self.project.project_pk,
+            'project': self.project.project_pk,
             'status': 'reopened',
         }
         response = self.client.post(reverse('task-list'), data, format='json')
@@ -346,19 +346,19 @@ class AdminTaskViewSetTests(APITestCase):
             title='Test Task 1',
             description='Description for the first test task.',
             status='open',
-            project_id=self.project,
+            project=self.project,
         )
         self.task_2 = TaskModel.objects.create(
             title='Test Task 2',
             description='Description for the second test task.',
             status='in progress',
-            project_id=self.project,
+            project=self.project,
         )
         self.task_3 = TaskModel.objects.create(
             title='Test Inactive Task',
             description='Description for the inactive test task.',
             status='in progress',
-            project_id=self.project,
+            project=self.project,
             active=False,
         )
 
@@ -416,7 +416,7 @@ class AdminTaskViewSetTests(APITestCase):
         data = {
             'title': 'Test Task 4',
             'description': 'Description for test task.',
-            'project_id': self.project.project_pk,
+            'project': self.project.project_pk,
             'status': 'reopened',
         }
         response = self.client.post(reverse('admin_task-list'), data, format='json')
@@ -472,13 +472,13 @@ class TaskSubscribersViewSetTests(APITestCase):
             title='Test Task',
             description='Description for the test task.',
             status='open',
-            project_id=self.project,
+            project=self.project,
         )
         self.subscription_1 = TaskSubscribersModel.objects.create(
-            task_id=self.task, task_status=self.task.status, subscriber_id=1
+            task=self.task, task_status=self.task.status, subscriber_id=1
         )
         self.subscription_2 = TaskSubscribersModel.objects.create(
-            task_id=self.task, task_status=self.task.status, subscriber_id=2
+            task=self.task, task_status=self.task.status, subscriber_id=2
         )
 
     def test_get_subscribers_list(self):
@@ -492,7 +492,7 @@ class TaskSubscribersViewSetTests(APITestCase):
             TaskSubscribersModel.objects.all().count(),
         )
         self.assertIn(
-            ('task_id', self.task.task_pk), response.data.get('results')[-1].items()
+            ('task', self.task.task_pk), response.data.get('results')[-1].items()
         )
         self.assertIn(
             ('subscriber_id', self.subscription_2.subscriber_id),
@@ -573,13 +573,13 @@ class TaskAttachmentsViewSetTests(APITestCase):
             title='Test Task',
             description='Description for the test task.',
             status='open',
-            project_id=self.project,
+            project=self.project,
         )
         self.attachment_1 = TasksAttachmentsModel.objects.create(
-            task_id=self.task, attachment_id=1
+            task=self.task, attachment_id=1
         )
         self.attachment_2 = TasksAttachmentsModel.objects.create(
-            task_id=self.task, attachment_id=2
+            task=self.task, attachment_id=2
         )
 
     def test_get_attachments_list(self):
@@ -593,7 +593,7 @@ class TaskAttachmentsViewSetTests(APITestCase):
             TasksAttachmentsModel.objects.all().count(),
         )
         self.assertIn(
-            ('task_id', self.task.task_pk), response.data.get('results')[-1].items()
+            ('task', self.task.task_pk), response.data.get('results')[-1].items()
         )
         self.assertIn(
             ('attachment_id', self.attachment_2.attachment_id),
@@ -668,10 +668,10 @@ class ProjectParticipantsViewSetTests(APITestCase):
             title='Test Project', description='Description for the test project.'
         )
         self.participation_1 = ProjectParticipantsModel.objects.create(
-            project_id=self.project, participant_id=1
+            project=self.project, participant_id=1
         )
         self.participation_2 = ProjectParticipantsModel.objects.create(
-            project_id=self.project, participant_id=2
+            project=self.project, participant_id=2
         )
 
     def test_get_participants_list(self):
@@ -685,7 +685,7 @@ class ProjectParticipantsViewSetTests(APITestCase):
             ProjectParticipantsModel.objects.all().count(),
         )
         self.assertIn(
-            ('project_id', self.project.project_pk),
+            ('project', self.project.project_pk),
             response.data.get('results')[-1].items(),
         )
         self.assertIn(
@@ -726,7 +726,7 @@ class ProjectParticipantsViewSetTests(APITestCase):
         """
         response = self.client.post(
             reverse('project_participant-list'),
-            {'project_id': self.project.project_pk, 'participant_id': 3},
+            {'project': self.project.project_pk, 'participant_id': 3},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
