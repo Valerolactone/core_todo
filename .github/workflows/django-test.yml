@@ -2,7 +2,7 @@ name: Run tests
 
 on:
   push:
-    branches: [ "develop", "fix-github-actions" ]
+    branches: [ "develop" ]
   pull_request:
     branches: [ "develop" ]
 
@@ -19,7 +19,7 @@ jobs:
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
         ports:
-        -  5432:5432
+        -  5433:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s 
@@ -41,6 +41,11 @@ jobs:
     - name: Install Dependencies
       run: poetry install
 
+    - name: Run migrations
+      run: |
+        cd core
+        poetry run python manage.py migrate --settings=core.settings.ci_cd
+
     - name: Run Tests
       env:
         DEBUG: ${{ secrets.DEBUG }}
@@ -51,4 +56,4 @@ jobs:
         DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
       run: |
         cd core
-        poetry run python manage.py test
+        poetry run python manage.py test --settings=core.settings.ci_cd
