@@ -193,9 +193,6 @@ class TaskStatusUpdateView(UpdateAPIView):
         if instance.status == new_status:
             return Response(serializer.data)
 
-        task = Task.objects.get(task_pk=instance.task_pk)
-        task.status = new_status
-
         self.perform_update(serializer)
 
         return Response(serializer.data)
