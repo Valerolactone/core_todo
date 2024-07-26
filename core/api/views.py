@@ -37,10 +37,8 @@ class ProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        if 'user_id' in kwargs:
-            user_id = kwargs['user_id']
-            manage_project_service = ManageProjectService(instance, user_id=user_id)
-            manage_project_service.add_project_participant()
+        manage_project_service = ManageProjectService(instance, user_id=1)
+        manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -64,10 +62,8 @@ class AdminProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        if 'user_id' in kwargs:
-            user_id = kwargs['user_id']
-            manage_project_service = ManageProjectService(instance, user_id=user_id)
-            manage_project_service.add_project_participant()
+        manage_project_service = ManageProjectService(instance, user_id=1)
+        manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -120,10 +116,8 @@ class TaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        if 'user_id' in kwargs:
-            user_id = kwargs['user_id']
-            manage_task_serviced = ManageTaskService(instance, user_id=user_id)
-            manage_task_serviced.add_task_subscription()
+        manage_task_serviced = ManageTaskService(instance, user_id=1)
+        manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -150,10 +144,8 @@ class AdminTaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        if 'user_id' in kwargs:
-            user_id = kwargs['user_id']
-            manage_task_serviced = ManageTaskService(instance, user_id=user_id)
-            manage_task_serviced.add_task_subscription()
+        manage_task_serviced = ManageTaskService(instance, user_id=1)
+        manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
