@@ -1,58 +1,88 @@
+from datetime import datetime
+
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
 
-from .models import (
-    ProjectModel,
-    ProjectParticipantsModel,
-    TaskModel,
-    TasksAttachmentsModel,
-    TaskSubscribersModel,
-)
+from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
 
 
-class ProjectViewSetTests(APITestCase):
+class ProjectTests(APITestCase):
     def setUp(self):
-        self.project_1 = ProjectModel.objects.create(
+        self.project_1 = Project.objects.create(
             title='Test Project 1',
             description='Description for the first test project.',
         )
-        self.project_2 = ProjectModel.objects.create(
+        self.project_2 = Project.objects.create(
             title='Test Project 2',
             description='Description for the second test project.',
         )
-        self.project_3 = ProjectModel.objects.create(
+        self.project_3 = Project.objects.create(
             title='Test Inactive Project',
             description='Description for the inactive test project.',
             active=False,
         )
+        self.task_1 = Task.objects.create(
+            title='Test Task 1',
+            description='Description for the first test task.',
+            status='open',
+            project=self.project_2,
+        )
+        self.task_2 = Task.objects.create(
+            title='Test Task 2',
+            description='Description for the second test task.',
+            status='open',
+            project=self.project_3,
+        )
 
-    def test_get_projects_list(self):
+    def test_get_list_of_active_projects(self):
         """
-        Ensure we can get list of active project objects.
+        Ensure we can get a list of ACTIVE projects.
         """
         response = self.client.get(reverse('project-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             len(response.data.get('results')),
-            ProjectModel.objects.filter(active=True).count(),
+            Project.objects.filter(active=True).count(),
         )
         self.assertIn(
-            ('title', self.project_1.title), response.data.get('results')[-1].items()
+            ('title', self.project_1.title), response.data.get('results')[0].items()
         )
         self.assertNotIn('active', response.data.get('results')[-1].keys())
         self.assertNotIn('deleted_at', response.data.get('results')[-1].keys())
 
+    def test_get_list_of_all_projects_as_admin(self):
+        """
+        Ensure we can get a list of ALL projects with ALL fields.
+        """
+        response = self.client.get(reverse('admin_project-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            len(response.data.get('results')), Project.objects.all().count()
+        )
+        self.assertIn(
+            ('title', self.project_1.title), response.data.get('results')[0].items()
+        )
+        self.assertIn('active', response.data.get('results')[-1].keys())
+        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
+
     def test_get_nonexistent_project(self):
         """
-        Ensure we can't get non-existent project object.
+        Ensure we can't get non-existent project.
         """
         response = self.client.get(reverse('project-detail', kwargs={'pk': 3}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_get_project(self):
+    def test_get_nonexistent_project_as_admin(self):
         """
-        Ensure we can get certain project object.
+        Ensure we can't get non-existent project as admin.
+        """
+        response = self.client.get(reverse('admin_project-detail', kwargs={'pk': 5}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_active_project(self):
+        """
+        Ensure we can get certain ACTIVE project object.
         """
         response = self.client.get(
             reverse('project-detail', kwargs={'pk': self.project_1.project_pk})
@@ -63,94 +93,9 @@ class ProjectViewSetTests(APITestCase):
         self.assertNotIn('active', response.data.keys())
         self.assertNotIn('deleted_at', response.data.keys())
 
-    def test_create_project(self):
+    def test_get_inactive_project_as_admin(self):
         """
-        Ensure we can create a new project object.
-        """
-        data = {
-            'title': 'Test Project 3',
-            'description': 'Description for the third test project.',
-        }
-        response = self.client.post(reverse('project-list'), data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertNotIn('active', response.data.keys())
-        self.assertNotIn('deleted_at', response.data.keys())
-        self.assertTrue(ProjectModel.objects.filter(title='Test Project 3').exists())
-
-    def test_update_project(self):
-        """
-        Ensure we can update project object.
-        """
-        response = self.client.patch(
-            reverse('project-detail', kwargs={'pk': self.project_2.project_pk}),
-            {'title': 'Test Project 4'},
-            format='json',
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(ProjectModel.objects.filter(title='Test Project 2').exists())
-        self.assertTrue(ProjectModel.objects.filter(title='Test Project 4').exists())
-
-    def test_delete_project(self):
-        """
-        Ensure we can delete project object.
-        """
-        pk = self.project_2.project_pk
-        response = self.client.delete(reverse('project-detail', kwargs={'pk': pk}))
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(ProjectModel.objects.get(project_pk=pk).active)
-        self.assertIsNotNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
-
-    def test_not_shown_deleted_project(self):
-        """
-        Ensure that deleted projects are not displayed.
-        """
-        response = self.client.get(reverse('project-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for obj in response.data.get('results'):
-            self.assertNotIn(('active', False), obj.items())
-
-
-class AdminProjectViewSetTests(APITestCase):
-    def setUp(self):
-        self.project_1 = ProjectModel.objects.create(
-            title='Test Project 1',
-            description='Description for the first test project.',
-        )
-        self.project_2 = ProjectModel.objects.create(
-            title='Test Project 2',
-            description='Description for the second test project.',
-        )
-        self.project_3 = ProjectModel.objects.create(
-            title='Test Inactive Project',
-            description='Description for the inactive test project.',
-            active=False,
-        )
-
-    def test_get_projects_list(self):
-        """
-        Ensure we can get list of all project objects with all fields.
-        """
-        response = self.client.get(reverse('admin_project-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            len(response.data.get('results')), ProjectModel.objects.all().count()
-        )
-        self.assertIn(
-            ('title', self.project_1.title), response.data.get('results')[-1].items()
-        )
-        self.assertIn('active', response.data.get('results')[-1].keys())
-        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
-
-    def test_get_nonexistent_project(self):
-        """
-        Ensure we can't get non-existent project object.
-        """
-        response = self.client.get(reverse('admin_project-detail', kwargs={'pk': 5}))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_get_inactive_project(self):
-        """
-        Ensure we can get project object with false active field.
+        Ensure we can get certain INACTIVE project.
         """
         response = self.client.get(
             reverse('admin_project-detail', kwargs={'pk': self.project_3.project_pk})
@@ -160,9 +105,9 @@ class AdminProjectViewSetTests(APITestCase):
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
 
-    def test_get_project(self):
+    def test_get_project_as_admin(self):
         """
-        Ensure we can get certain project object with all fields.
+        Ensure we can get certain project with ALL fields.
         """
         response = self.client.get(
             reverse('admin_project-detail', kwargs={'pk': self.project_1.project_pk})
@@ -175,7 +120,26 @@ class AdminProjectViewSetTests(APITestCase):
 
     def test_create_project(self):
         """
-        Ensure we can create a new project object.
+        Ensure we can create a new project and add new project participant.
+        """
+        data = {
+            'title': 'Test Project 3',
+            'description': 'Description for the third test project.',
+        }
+        response = self.client.post(reverse('project-list'), data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn('active', response.data.keys())
+        self.assertNotIn('deleted_at', response.data.keys())
+        self.assertTrue(Project.objects.filter(title='Test Project 3').exists())
+        self.assertTrue(
+            ProjectParticipant.objects.filter(
+                project=response.data.get("project_pk")
+            ).exists()
+        )
+
+    def test_create_project_as_admin(self):
+        """
+        Ensure we can create a new project and add new project participant.
         """
         data = {
             'title': 'Test Project 3',
@@ -185,11 +149,29 @@ class AdminProjectViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
-        self.assertTrue(ProjectModel.objects.filter(title='Test Project 3').exists())
+        self.assertTrue(Project.objects.filter(title='Test Project 3').exists())
+        self.assertTrue(
+            ProjectParticipant.objects.filter(
+                project=response.data.get("project_pk")
+            ).exists()
+        )
 
     def test_update_project(self):
         """
         Ensure we can update project object.
+        """
+        response = self.client.patch(
+            reverse('project-detail', kwargs={'pk': self.project_2.project_pk}),
+            {'title': 'Test Project 4'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Project.objects.filter(title='Test Project 2').exists())
+        self.assertTrue(Project.objects.filter(title='Test Project 4').exists())
+
+    def test_update_project_as_admin(self):
+        """
+        Ensure we can update project.
         """
         response = self.client.patch(
             reverse('admin_project-detail', kwargs={'pk': self.project_1.project_pk}),
@@ -197,24 +179,12 @@ class AdminProjectViewSetTests(APITestCase):
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(ProjectModel.objects.filter(title='Test Project 1').exists())
-        self.assertTrue(ProjectModel.objects.filter(title='Test Project 4').exists())
+        self.assertFalse(Project.objects.filter(title='Test Project 1').exists())
+        self.assertTrue(Project.objects.filter(title='Test Project 4').exists())
 
-    def test_delete_project(self):
+    def test_update_inactive_project_status_as_admin(self):
         """
-        Ensure we can delete project object.
-        """
-        pk = self.project_2.project_pk
-        response = self.client.delete(
-            reverse('admin_project-detail', kwargs={'pk': pk})
-        )
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(ProjectModel.objects.get(project_pk=pk).active)
-        self.assertIsNotNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
-
-    def test_update_inactive_project(self):
-        """
-        Ensure we can update 'active' field of project object.
+        Ensure we can update 'active' field of project.
         """
         pk = self.project_3.project_pk
         response = self.client.put(
@@ -223,44 +193,86 @@ class AdminProjectViewSetTests(APITestCase):
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(ProjectModel.objects.get(project_pk=pk).active)
-        self.assertIsNone(ProjectModel.objects.get(project_pk=pk).deleted_at)
+        self.assertTrue(Project.objects.get(project_pk=pk).active)
+        self.assertIsNone(Project.objects.get(project_pk=pk).deleted_at)
+        self.assertTrue(Task.objects.get(project=self.project_3).active)
+
+    def test_delete_project(self):
+        """
+        Ensure we can delete project and deactivate related tasks.
+        """
+        pk = self.project_2.project_pk
+        response = self.client.delete(reverse('project-detail', kwargs={'pk': pk}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Project.objects.get(project_pk=pk).active)
+        self.assertIsNotNone(Project.objects.get(project_pk=pk).deleted_at)
+        self.assertFalse(Task.objects.get(project=self.project_2).active)
+
+    def test_delete_project_as_admin(self):
+        """
+        Ensure we can delete project and deactivate related tasks.
+        """
+        pk = self.project_2.project_pk
+        response = self.client.delete(
+            reverse('admin_project-detail', kwargs={'pk': pk})
+        )
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Project.objects.get(project_pk=pk).active)
+        self.assertIsNotNone(Project.objects.get(project_pk=pk).deleted_at)
+        self.assertFalse(Task.objects.get(project=self.project_2).active)
 
 
-class TaskViewSetTests(APITestCase):
+class TaskTests(APITestCase):
     def setUp(self):
-        self.project = ProjectModel.objects.create(
+        self.project_1 = Project.objects.create(
             title='Test Project', description='Description for the test project.'
         )
-        self.task_1 = TaskModel.objects.create(
+        self.project_2 = Project.objects.create(
+            title='Test Inactive Project',
+            description='Description for the inactive test project.',
+            active=False,
+        )
+        self.task_1 = Task.objects.create(
             title='Test Task 1',
             description='Description for the first test task.',
             status='open',
-            project=self.project,
+            project=self.project_1,
         )
-        self.task_2 = TaskModel.objects.create(
+        self.task_2 = Task.objects.create(
             title='Test Task 2',
             description='Description for the second test task.',
             status='in progress',
-            project=self.project,
+            executor_id=7,
+            project=self.project_1,
         )
-        self.task_3 = TaskModel.objects.create(
+        self.task_3 = Task.objects.create(
             title='Test Inactive Task',
             description='Description for the inactive test task.',
             status='in progress',
-            project=self.project,
+            project=self.project_1,
+            active=False,
+            deleted_at=datetime.utcnow(),
+        )
+        self.task_4 = Task.objects.create(
+            title='Test Inactive Task',
+            description='Description for the inactive test task.',
+            status='reopen',
+            project=self.project_2,
             active=False,
         )
+        self.task_subscription = TaskSubscriber.objects.create(
+            task=self.task_2, subscriber_id=12
+        )
 
-    def test_get_tasks_list(self):
+    def test_get_list_of_active_tasks(self):
         """
-        Ensure we can get list of active task objects.
+        Ensure we can get list of ACTIVE tasks.
         """
         response = self.client.get(reverse('task-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             len(response.data.get('results')),
-            TaskModel.objects.filter(active=True).count(),
+            Task.objects.filter(active=True).count(),
         )
         self.assertIn(
             ('title', self.task_2.title), response.data.get('results')[-1].items()
@@ -268,16 +280,36 @@ class TaskViewSetTests(APITestCase):
         self.assertNotIn('active', response.data.get('results')[-1].keys())
         self.assertNotIn('deleted_at', response.data.get('results')[-1].keys())
 
+    def test_get_list_of_all_tasks_as_admin(self):
+        """
+        Ensure we can get list of ALL tasks with ALL fields.
+        """
+        response = self.client.get(reverse('admin_task-list'))
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data.get('results')), Task.objects.all().count())
+        self.assertIn(
+            ('title', self.task_3.title), response.data.get('results')[-1].items()
+        )
+        self.assertIn('active', response.data.get('results')[-1].keys())
+        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
+
     def test_get_nonexistent_task(self):
         """
-        Ensure we can't get non-existent task object.
+        Ensure we can't get non-existent task.
         """
         response = self.client.get(reverse('task-detail', kwargs={'pk': 5}))
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_get_task(self):
+    def test_get_nonexistent_task_as_admin(self):
         """
-        Ensure we can get certain task object.
+        Ensure we can't get non-existent task.
+        """
+        response = self.client.get(reverse('admin_task-detail', kwargs={'pk': 5}))
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_active_task(self):
+        """
+        Ensure we can get certain ACTIVE task object.
         """
         response = self.client.get(
             reverse('task-detail', kwargs={'pk': self.task_1.task_pk})
@@ -288,105 +320,9 @@ class TaskViewSetTests(APITestCase):
         self.assertNotIn('active', response.data.keys())
         self.assertNotIn('deleted_at', response.data.keys())
 
-    def test_create_task(self):
+    def test_get_inactive_task_as_admin(self):
         """
-        Ensure we can create a new task object.
-        """
-        data = {
-            'title': 'Test Task 4',
-            'description': 'Description for test task.',
-            'project': self.project.project_pk,
-            'status': 'reopened',
-        }
-        response = self.client.post(reverse('task-list'), data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertNotIn('active', response.data.keys())
-        self.assertNotIn('deleted_at', response.data.keys())
-        self.assertTrue(TaskModel.objects.filter(title='Test Task 4').exists())
-
-    def test_update_task(self):
-        """
-        Ensure we can update task object.
-        """
-        response = self.client.patch(
-            reverse('task-detail', kwargs={'pk': self.task_1.task_pk}),
-            {'status': 'closed'},
-            format='json',
-        )
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(TaskModel.objects.filter(status='open').exists())
-        self.assertTrue(TaskModel.objects.filter(status='closed').exists())
-
-    def test_delete_task(self):
-        """
-        Ensure we can delete task object.
-        """
-        pk = self.task_2.task_pk
-        response = self.client.delete(reverse('task-detail', kwargs={'pk': pk}))
-        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TaskModel.objects.get(task_pk=pk).active)
-        self.assertIsNotNone(TaskModel.objects.get(task_pk=pk).deleted_at)
-
-    def test_not_shown_deleted_task(self):
-        """
-        Ensure that deleted task are not displayed.
-        """
-        response = self.client.get(reverse('task-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        for obj in response.data.get('results'):
-            self.assertNotIn(('active', False), obj.items())
-
-
-class AdminTaskViewSetTests(APITestCase):
-    def setUp(self):
-        self.project = ProjectModel.objects.create(
-            title='Test Project', description='Description for the test project.'
-        )
-        self.task_1 = TaskModel.objects.create(
-            title='Test Task 1',
-            description='Description for the first test task.',
-            status='open',
-            project=self.project,
-        )
-        self.task_2 = TaskModel.objects.create(
-            title='Test Task 2',
-            description='Description for the second test task.',
-            status='in progress',
-            project=self.project,
-        )
-        self.task_3 = TaskModel.objects.create(
-            title='Test Inactive Task',
-            description='Description for the inactive test task.',
-            status='in progress',
-            project=self.project,
-            active=False,
-        )
-
-    def test_get_tasks_list(self):
-        """
-        Ensure we can get list of active task objects.
-        """
-        response = self.client.get(reverse('admin_task-list'))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(
-            len(response.data.get('results')), TaskModel.objects.all().count()
-        )
-        self.assertIn(
-            ('title', self.task_3.title), response.data.get('results')[-1].items()
-        )
-        self.assertIn('active', response.data.get('results')[-1].keys())
-        self.assertIn('deleted_at', response.data.get('results')[-1].keys())
-
-    def test_get_nonexistent_task(self):
-        """
-        Ensure we can't get non-existent task object.
-        """
-        response = self.client.get(reverse('admin_task-detail', kwargs={'pk': 5}))
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-
-    def test_get_inactive_task(self):
-        """
-        Ensure we can get task object with false active field.
+        Ensure we can get certain INACTIVE task.
         """
         response = self.client.get(
             reverse('admin_task-detail', kwargs={'pk': self.task_3.task_pk})
@@ -396,9 +332,9 @@ class AdminTaskViewSetTests(APITestCase):
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
 
-    def test_get_task(self):
+    def test_get_task_as_admin(self):
         """
-        Ensure we can get certain task object.
+        Ensure we can get certain task with ALL fields.
         """
         response = self.client.get(
             reverse('admin_task-detail', kwargs={'pk': self.task_1.task_pk})
@@ -411,85 +347,260 @@ class AdminTaskViewSetTests(APITestCase):
 
     def test_create_task(self):
         """
-        Ensure we can create a new task object.
+        Ensure we can create a new task and add a new task subscriber and new project participant.
         """
         data = {
             'title': 'Test Task 4',
             'description': 'Description for test task.',
-            'project': self.project.project_pk,
+            'project': self.project_1.project_pk,
+            'status': 'reopened',
+        }
+        response = self.client.post(reverse('task-list'), data=data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertNotIn('active', response.data.keys())
+        self.assertNotIn('deleted_at', response.data.keys())
+        self.assertTrue(Task.objects.filter(title='Test Task 4').exists())
+        self.assertTrue(
+            TaskSubscriber.objects.filter(task=response.data.get("task_pk")).exists()
+        )
+        self.assertTrue(
+            ProjectParticipant.objects.filter(project=self.project_1).exists()
+        )
+
+    def test_create_task_as_admin(self):
+        """
+        Ensure we can create a new task and add a new task subscriber.
+        """
+        data = {
+            'title': 'Test Task 5',
+            'description': 'Description for test task.',
+            'project': self.project_1.project_pk,
             'status': 'reopened',
         }
         response = self.client.post(reverse('admin_task-list'), data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
-        self.assertTrue(TaskModel.objects.filter(title='Test Task 4').exists())
+        self.assertTrue(Task.objects.filter(title='Test Task 5').exists())
+        self.assertTrue(
+            TaskSubscriber.objects.filter(task=response.data.get("task_pk")).exists()
+        )
+        self.assertTrue(
+            ProjectParticipant.objects.filter(project=self.project_1).exists()
+        )
 
     def test_update_task(self):
         """
-        Ensure we can update task object.
+        Ensure we can update task.
+        """
+        response = self.client.patch(
+            reverse('task-detail', kwargs={'pk': self.task_1.task_pk}),
+            {'title': 'New task title'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Task.objects.filter(title=self.task_1.title).exists())
+        self.assertTrue(Task.objects.filter(title='New task title').exists())
+
+    def test_update_task_as_admin(self):
+        """
+        Ensure we can update task.
         """
         response = self.client.patch(
             reverse('admin_task-detail', kwargs={'pk': self.task_1.task_pk}),
+            {'title': 'New Task title'},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Task.objects.filter(title=self.task_1.title).exists())
+        self.assertTrue(Task.objects.filter(title='New Task title').exists())
+
+    def test_update_task_status(self):
+        """
+        Ensure we can update task status.
+        """
+        response = self.client.patch(
+            reverse('task_status_update', kwargs={'pk': self.task_1.task_pk}),
             {'status': 'closed'},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(TaskModel.objects.filter(status='open').exists())
-        self.assertTrue(TaskModel.objects.filter(status='closed').exists())
+        self.assertFalse(
+            Task.objects.filter(task_pk=self.task_1.task_pk, status='open').exists()
+        )
+        self.assertTrue(
+            Task.objects.filter(task_pk=self.task_1.task_pk, status='closed').exists()
+        )
+
+    def test_add_task_executor(self):
+        """
+        Ensure we can add task executor and add new task subscription and new project participant.
+        """
+        response = self.client.patch(
+            reverse('task_executor_update', kwargs={'pk': self.task_1.task_pk}),
+            {'executor_id': 10},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            Task.objects.filter(task_pk=self.task_1.task_pk, executor_id=None).exists()
+        )
+        self.assertTrue(
+            Task.objects.filter(task_pk=self.task_1.task_pk, executor_id=10).exists()
+        )
+        self.assertTrue(
+            TaskSubscriber.objects.filter(task=self.task_1, subscriber_id=10).exists()
+        )
+        self.assertTrue(
+            ProjectParticipant.objects.filter(
+                project=self.task_1.project, participant_id=10
+            ).exists()
+        )
+
+    def test_remove_task_executor(self):
+        """
+        Ensure we can remove task executor and remove him from task subscription.
+        """
+
+        response = self.client.patch(
+            reverse('task_executor_update', kwargs={'pk': self.task_1.task_pk}),
+            {'executor_id': None},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            Task.objects.filter(task_pk=self.task_1.task_pk, executor_id=10).exists()
+        )
+        self.assertTrue(
+            Task.objects.filter(task_pk=self.task_1.task_pk, executor_id=None).exists()
+        )
+        self.assertFalse(
+            TaskSubscriber.objects.filter(task=self.task_1, subscriber_id=10).exists()
+        )
+
+    def test_update_task_executor(self):
+        """
+        Ensure we can update task executor and remove old one from task subscription and add new one
+        to project participants and task subscription.
+        """
+
+        response = self.client.patch(
+            reverse('task_executor_update', kwargs={'pk': self.task_2.task_pk}),
+            {'executor_id': 12},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(
+            Task.objects.filter(
+                task_pk=self.task_2.task_pk, executor_id=self.task_2.executor_id
+            ).exists()
+        )
+        self.assertTrue(
+            Task.objects.filter(task_pk=self.task_2.task_pk, executor_id=12).exists()
+        )
+        self.assertFalse(
+            TaskSubscriber.objects.filter(
+                task=self.task_2, subscriber_id=self.task_2.executor_id
+            ).exists()
+        )
+        self.assertTrue(
+            TaskSubscriber.objects.filter(task=self.task_2, subscriber_id=12).exists()
+        )
+        self.assertTrue(
+            ProjectParticipant.objects.filter(
+                project=self.task_2.project, participant_id=12
+            ).exists()
+        )
 
     def test_delete_task(self):
         """
-        Ensure we can delete task object.
+        Ensure we can delete task and related subscriptions.
         """
         pk = self.task_2.task_pk
+        response = self.client.delete(reverse('task-detail', kwargs={'pk': pk}))
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Task.objects.get(task_pk=pk).active)
+        self.assertIsNotNone(Task.objects.get(task_pk=pk).deleted_at)
+        self.assertFalse(TaskSubscriber.objects.filter(task=self.task_2).exists())
+
+    def test_delete_task_as_admin(self):
+        """
+        Ensure we can delete task and related subscriptions.
+        """
+        pk = self.task_1.task_pk
         response = self.client.delete(reverse('admin_task-detail', kwargs={'pk': pk}))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertFalse(TaskModel.objects.get(task_pk=pk).active)
-        self.assertIsNotNone(TaskModel.objects.get(task_pk=pk).deleted_at)
+        self.assertFalse(Task.objects.get(task_pk=pk).active)
+        self.assertIsNotNone(Task.objects.get(task_pk=pk).deleted_at)
+        self.assertFalse(TaskSubscriber.objects.filter(task=self.task_1).exists())
 
-    def test_update_inactive_task(self):
+    def test_update_inactive_task_status_as_admin(self):
         """
-        Ensure we can update 'active' field of task object.
+        Ensure we can update the 'active' field of a task.
         """
-        pk = self.task_3.task_pk
         response = self.client.put(
-            reverse('admin_task_activation', kwargs={'pk': pk}),
+            reverse('admin_task_activation', kwargs={'pk': self.task_3.task_pk}),
             {'active': True},
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(TaskModel.objects.get(task_pk=pk).active)
-        self.assertIsNone(TaskModel.objects.get(task_pk=pk).deleted_at)
+        self.assertTrue(Task.objects.get(task_pk=self.task_3.task_pk).active)
+        self.assertIsNone(Task.objects.get(task_pk=self.task_3.task_pk).deleted_at)
+
+    def test_deactivate_task(self):
+        """
+        Ensure we can deactivate the task and the associated subscriptions will be deleted.
+        """
+        response = self.client.put(
+            reverse('admin_task_activation', kwargs={'pk': self.task_2.task_pk}),
+            {'active': False},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Task.objects.get(task_pk=self.task_2.task_pk).active)
+        self.assertIsNotNone(Task.objects.get(task_pk=self.task_2.task_pk).deleted_at)
+        self.assertFalse(TaskSubscriber.objects.filter(task=self.task_2).exists())
+
+    def test_availability_to_update_task_active_status(self):
+        """
+        Ensure we can only update the 'active' field of a task if its project is active.
+        """
+        response = self.client.put(
+            reverse('admin_task_activation', kwargs={'pk': self.task_4.task_pk}),
+            {'active': True},
+            format='json',
+        )
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Task.objects.get(task_pk=self.task_4.task_pk).active)
 
 
 class TaskSubscribersViewSetTests(APITestCase):
     def setUp(self):
-        self.project = ProjectModel.objects.create(
+        self.project = Project.objects.create(
             title='Test Project', description='Description for the test project.'
         )
-        self.task = TaskModel.objects.create(
+        self.task = Task.objects.create(
             title='Test Task',
             description='Description for the test task.',
             status='open',
             project=self.project,
         )
-        self.subscription_1 = TaskSubscribersModel.objects.create(
-            task=self.task, task_status=self.task.status, subscriber_id=1
+        self.subscription_1 = TaskSubscriber.objects.create(
+            task=self.task, subscriber_id=1
         )
-        self.subscription_2 = TaskSubscribersModel.objects.create(
-            task=self.task, task_status=self.task.status, subscriber_id=2
+        self.subscription_2 = TaskSubscriber.objects.create(
+            task=self.task, subscriber_id=2
         )
 
     def test_get_subscribers_list(self):
         """
-        Ensure we can get list of task subscriber objects.
+        Ensure we can get list of task subscribers.
         """
         response = self.client.get(reverse('task_subscription-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             len(response.data.get('results')),
-            TaskSubscribersModel.objects.all().count(),
+            TaskSubscriber.objects.all().count(),
         )
         self.assertIn(
             ('task', self.task.task_pk), response.data.get('results')[-1].items()
@@ -501,7 +612,7 @@ class TaskSubscribersViewSetTests(APITestCase):
 
     def test_get_nonexistent_subscription(self):
         """
-        Ensure we can't get non-existent subscription object.
+        Ensure we can't get non-existent subscription.
         """
         response = self.client.get(
             reverse('task_subscription-detail', kwargs={'pk': 10})
@@ -510,12 +621,12 @@ class TaskSubscribersViewSetTests(APITestCase):
 
     def test_get_subscription(self):
         """
-        Ensure we can get certain subscription object.
+        Ensure we can get certain subscription.
         """
         response = self.client.get(
             reverse(
                 'task_subscription-detail',
-                kwargs={'pk': self.subscription_1.subscription_pk},
+                kwargs={'pk': self.subscription_1.task_subscriber_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -528,23 +639,23 @@ class TaskSubscribersViewSetTests(APITestCase):
 
     def test_create_subscription(self):
         """
-        Ensure we can't create a new subscription object.
+        Ensure we can create a new subscription.
         """
         response = self.client.post(
             reverse('task_subscription-list'),
-            {'project_id': self.project.project_pk, 'subscriber_id': 9},
+            {'task': self.task.task_pk, 'subscriber_id': 9},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_update_subscription(self):
         """
-        Ensure we can't update subscription object.
+        Ensure we can't update subscription.
         """
         response = self.client.patch(
             reverse(
                 'task_subscription-detail',
-                kwargs={'pk': self.subscription_1.subscription_pk},
+                kwargs={'pk': self.subscription_1.task_subscriber_pk},
             ),
             {'subscriber_id': 3},
             format='json',
@@ -553,12 +664,12 @@ class TaskSubscribersViewSetTests(APITestCase):
 
     def test_delete_subscription(self):
         """
-        Ensure we can't delete subscription object.
+        Ensure we can't delete subscription.
         """
         response = self.client.delete(
             reverse(
                 'task_subscription-detail',
-                kwargs={'pk': self.subscription_1.subscription_pk},
+                kwargs={'pk': self.subscription_1.task_subscriber_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -566,31 +677,31 @@ class TaskSubscribersViewSetTests(APITestCase):
 
 class TaskAttachmentsViewSetTests(APITestCase):
     def setUp(self):
-        self.project = ProjectModel.objects.create(
+        self.project = Project.objects.create(
             title='Test Project', description='Description for the test project.'
         )
-        self.task = TaskModel.objects.create(
+        self.task = Task.objects.create(
             title='Test Task',
             description='Description for the test task.',
             status='open',
             project=self.project,
         )
-        self.attachment_1 = TasksAttachmentsModel.objects.create(
+        self.attachment_1 = TasksAttachment.objects.create(
             task=self.task, attachment_id=1
         )
-        self.attachment_2 = TasksAttachmentsModel.objects.create(
+        self.attachment_2 = TasksAttachment.objects.create(
             task=self.task, attachment_id=2
         )
 
     def test_get_attachments_list(self):
         """
-        Ensure we can get list of task attachment objects.
+        Ensure we can get list of task attachments.
         """
         response = self.client.get(reverse('task_attachment-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             len(response.data.get('results')),
-            TasksAttachmentsModel.objects.all().count(),
+            TasksAttachment.objects.all().count(),
         )
         self.assertIn(
             ('task', self.task.task_pk), response.data.get('results')[-1].items()
@@ -602,7 +713,7 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
     def test_get_nonexistent_attachment(self):
         """
-        Ensure we can't get non-existent attachment object.
+        Ensure we can't get non-existent attachment.
         """
         response = self.client.get(
             reverse('task_attachment-detail', kwargs={'pk': 100})
@@ -611,11 +722,12 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
     def test_get_attachment(self):
         """
-        Ensure we can get certain attachment object.
+        Ensure we can get certain attachment.
         """
         response = self.client.get(
             reverse(
-                'task_attachment-detail', kwargs={'pk': self.attachment_1.attachment_pk}
+                'task_attachment-detail',
+                kwargs={'pk': self.attachment_1.task_attachment_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -628,22 +740,23 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
     def test_create_attachment(self):
         """
-        Ensure we can't create a new attachment object.
+        Ensure we can create a new attachment.
         """
         response = self.client.post(
             reverse('task_attachment-list'),
-            {'task_id': self.task.task_pk, 'attachment_id': 5},
+            {'task': self.task.task_pk, 'attachment_id': 5},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_update_attachment(self):
         """
-        Ensure we can't update attachment object.
+        Ensure we can't update attachment.
         """
         response = self.client.patch(
             reverse(
-                'task_attachment-detail', kwargs={'pk': self.attachment_1.attachment_pk}
+                'task_attachment-detail',
+                kwargs={'pk': self.attachment_1.task_attachment_pk},
             ),
             {'attachment_id': 6},
             format='json',
@@ -652,11 +765,12 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
     def test_delete_attachment(self):
         """
-        Ensure we can't delete attachment object.
+        Ensure we can't delete attachment.
         """
         response = self.client.delete(
             reverse(
-                'task_attachment-detail', kwargs={'pk': self.attachment_1.attachment_pk}
+                'task_attachment-detail',
+                kwargs={'pk': self.attachment_1.task_attachment_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -664,25 +778,25 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
 class ProjectParticipantsViewSetTests(APITestCase):
     def setUp(self):
-        self.project = ProjectModel.objects.create(
+        self.project = Project.objects.create(
             title='Test Project', description='Description for the test project.'
         )
-        self.participation_1 = ProjectParticipantsModel.objects.create(
+        self.participation_1 = ProjectParticipant.objects.create(
             project=self.project, participant_id=1
         )
-        self.participation_2 = ProjectParticipantsModel.objects.create(
+        self.participation_2 = ProjectParticipant.objects.create(
             project=self.project, participant_id=2
         )
 
     def test_get_participants_list(self):
         """
-        Ensure we can get list of project participation objects.
+        Ensure we can get list of project participations.
         """
         response = self.client.get(reverse('project_participant-list'))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(
             len(response.data.get('results')),
-            ProjectParticipantsModel.objects.all().count(),
+            ProjectParticipant.objects.all().count(),
         )
         self.assertIn(
             ('project', self.project.project_pk),
@@ -695,7 +809,7 @@ class ProjectParticipantsViewSetTests(APITestCase):
 
     def test_get_nonexistent_participation(self):
         """
-        Ensure we can't get non-existent participation object.
+        Ensure we can't get non-existent participation.
         """
         response = self.client.get(
             reverse('project_participant-detail', kwargs={'pk': 10})
@@ -704,12 +818,12 @@ class ProjectParticipantsViewSetTests(APITestCase):
 
     def test_get_participation(self):
         """
-        Ensure we can get certain participation object.
+        Ensure we can get certain participation.
         """
         response = self.client.get(
             reverse(
                 'project_participant-detail',
-                kwargs={'pk': self.participation_1.participation_pk},
+                kwargs={'pk': self.participation_1.project_participant_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -722,23 +836,23 @@ class ProjectParticipantsViewSetTests(APITestCase):
 
     def test_create_participation(self):
         """
-        Ensure we can't create a new participation object.
+        Ensure we can create a new participation.
         """
         response = self.client.post(
             reverse('project_participant-list'),
             {'project': self.project.project_pk, 'participant_id': 3},
             format='json',
         )
-        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     def test_update_participation(self):
         """
-        Ensure we can't update participation object.
+        Ensure we can't update participation.
         """
         response = self.client.patch(
             reverse(
                 'project_participant-detail',
-                kwargs={'pk': self.participation_1.participation_pk},
+                kwargs={'pk': self.participation_1.project_participant_pk},
             ),
             {'participant_id': 3},
             format='json',
@@ -747,12 +861,12 @@ class ProjectParticipantsViewSetTests(APITestCase):
 
     def test_delete_participation(self):
         """
-        Ensure we can't delete participation object.
+        Ensure we can't delete participation.
         """
         response = self.client.delete(
             reverse(
                 'project_participant-detail',
-                kwargs={'pk': self.participation_1.participation_pk},
+                kwargs={'pk': self.participation_1.project_participant_pk},
             )
         )
         self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)

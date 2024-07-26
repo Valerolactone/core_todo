@@ -1,4 +1,4 @@
-from django.urls import include, path
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .views import (
@@ -8,7 +8,9 @@ from .views import (
     AdminTaskViewSet,
     ProjectParticipantsViewSet,
     ProjectViewSet,
+    TaskExecutorUpdateView,
     TasksAttachmentsViewSet,
+    TaskStatusUpdateView,
     TaskSubscribersViewSet,
     TaskViewSet,
 )
@@ -38,6 +40,16 @@ urlpatterns = [
         'admin_task_activation/<int:pk>/',
         AdminTaskActivationView.as_view(),
         name='admin_task_activation',
+    ),
+    path(
+        'task_status_update/<int:pk>/',
+        TaskStatusUpdateView.as_view(),
+        name='task_status_update',
+    ),
+    path(
+        'task_executor_update/<int:pk>/',
+        TaskExecutorUpdateView.as_view(),
+        name='task_executor_update',
     ),
 ]
 
