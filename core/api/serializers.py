@@ -1,14 +1,6 @@
-from datetime import datetime
-
 from rest_framework import serializers
 
-from .models import (
-    Project,
-    ProjectParticipants,
-    Task,
-    TasksAttachments,
-    TaskSubscribers,
-)
+from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
 
 
 class ProjectSerializer(serializers.ModelSerializer):
@@ -103,17 +95,17 @@ class TaskExecutorSerializer(serializers.ModelSerializer):
 
 class TaskSubscribersSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TaskSubscribers
-        fields = ('task_subscribers_pk', 'task', 'subscriber_id')
+        model = TaskSubscriber
+        fields = ('task_subscriber_pk', 'task', 'subscriber_id')
 
 
 class ProjectParticipantsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = ProjectParticipants
-        fields = ('project_participants_pk', 'project', 'participant_id')
+        model = ProjectParticipant
+        fields = ('project_participant_pk', 'project', 'participant_id')
 
 
 class TasksAttachmentsSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TasksAttachments
-        fields = ('task_attachments_pk', 'task', 'attachment_id')
+        model = TasksAttachment
+        fields = ('task_attachment_pk', 'task', 'attachment_id')

@@ -1,18 +1,10 @@
-from datetime import datetime
-
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, viewsets
 from rest_framework.generics import UpdateAPIView
 from rest_framework.response import Response
 
-from .models import (
-    Project,
-    ProjectParticipants,
-    Task,
-    TasksAttachments,
-    TaskSubscribers,
-)
+from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
 from .serializers import (
     AdminProjectActivationSerializer,
     AdminProjectSerializer,
@@ -26,16 +18,7 @@ from .serializers import (
     TaskStatusSerializer,
     TaskSubscribersSerializer,
 )
-from .services import (
-    CreateProjectParticipantService,
-    CreateTaskSubscriberService,
-    DeleteTaskSubscriptionsService,
-    UpdateProjectActiveStatusService,
-    UpdateStatusForRelatedTasks,
-    UpdateTaskActiveStatusService,
-    UpdateTaskExecutorService,
-    UpdateTaskStatusService,
-)
+from .services import ManageProjectService, ManageTaskService, UpdateTaskExecutorService
 
 
 class ProjectViewSet(
@@ -54,22 +37,15 @@ class ProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        user_id = 1
         if 'user_id' in kwargs:
             user_id = kwargs['user_id']
-        project_participation_service = CreateProjectParticipantService(
-            instance, user_id
-        )
-        project_participation_service.execute()
+            manage_project_service = ManageProjectService(instance, user_id=user_id)
+            manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        instance.active = False
-        instance.deleted_at = datetime.utcnow()
-        instance.save()
-
-        status_update_service = UpdateStatusForRelatedTasks(instance)
-        status_update_service.execute()
+        manage_project_service = ManageProjectService(instance)
+        manage_project_service.deactivate_project()
 
 
 class AdminProjectViewSet(
@@ -88,22 +64,15 @@ class AdminProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        user_id = 1
         if 'user_id' in kwargs:
             user_id = kwargs['user_id']
-        project_participation_service = CreateProjectParticipantService(
-            instance, user_id
-        )
-        project_participation_service.execute()
+            manage_project_service = ManageProjectService(instance, user_id=user_id)
+            manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        instance.active = False
-        instance.deleted_at = datetime.utcnow()
-        instance.save()
-
-        status_update_service = UpdateStatusForRelatedTasks(instance)
-        status_update_service.execute()
+        manage_project_service = ManageProjectService(instance)
+        manage_project_service.deactivate_project()
 
 
 class AdminProjectActivationView(UpdateAPIView):
@@ -122,11 +91,10 @@ class AdminProjectActivationView(UpdateAPIView):
         if instance.active == active_status:
             return Response(serializer.data)
 
-        activation_service = UpdateProjectActiveStatusService(instance, active_status)
-        activation_service.execute()
-
-        status_update_service = UpdateStatusForRelatedTasks(instance)
-        status_update_service.execute()
+        manage_project_service = ManageProjectService(
+            instance, active_status=active_status
+        )
+        manage_project_service.update_project_active_status()
 
         self.perform_update(serializer)
 
@@ -152,24 +120,15 @@ class TaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        user_id = 1
         if 'user_id' in kwargs:
             user_id = kwargs['user_id']
-        task_subscription_serviced = CreateTaskSubscriberService(instance, user_id)
-        project_participation_service = CreateProjectParticipantService(
-            instance.project, user_id
-        )
-        task_subscription_serviced.execute()
-        project_participation_service.execute()
+            manage_task_serviced = ManageTaskService(instance, user_id=user_id)
+            manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        instance.active = False
-        instance.deleted_at = datetime.utcnow()
-        instance.save()
-
-        delete_task_subscriptions_service = DeleteTaskSubscriptionsService(instance)
-        delete_task_subscriptions_service.execute()
+        manage_task_serviced = ManageTaskService(instance)
+        manage_task_serviced.deactivate_task()
 
 
 class AdminTaskViewSet(
@@ -191,24 +150,15 @@ class AdminTaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        user_id = 1
         if 'user_id' in kwargs:
             user_id = kwargs['user_id']
-        task_subscription_serviced = CreateTaskSubscriberService(instance, user_id)
-        project_participation_service = CreateProjectParticipantService(
-            instance.project, user_id
-        )
-        task_subscription_serviced.execute()
-        project_participation_service.execute()
+            manage_task_serviced = ManageTaskService(instance, user_id=user_id)
+            manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        instance.active = False
-        instance.deleted_at = datetime.utcnow()
-        instance.save()
-
-        delete_task_subscriptions_service = DeleteTaskSubscriptionsService(instance)
-        delete_task_subscriptions_service.execute()
+        manage_task_serviced = ManageTaskService(instance)
+        manage_task_serviced.deactivate_task()
 
 
 class AdminTaskActivationView(UpdateAPIView):
@@ -227,11 +177,8 @@ class AdminTaskActivationView(UpdateAPIView):
         if instance.active == active_status or not instance.project.active:
             return Response(serializer.data)
 
-        activation_service = UpdateTaskActiveStatusService(instance, active_status)
-        activation_service.execute()
-        if not active_status:
-            delete_task_subscriptions_service = DeleteTaskSubscriptionsService(instance)
-            delete_task_subscriptions_service.execute()
+        manage_task_service = ManageTaskService(instance, active_status=active_status)
+        manage_task_service.update_task_active_status()
 
         self.perform_update(serializer)
 
@@ -254,8 +201,8 @@ class TaskStatusUpdateView(UpdateAPIView):
         if instance.status == new_status:
             return Response(serializer.data)
 
-        task_status_update_service = UpdateTaskStatusService(instance, new_status)
-        task_status_update_service.execute()
+        task = Task.objects.get(task_pk=instance.task_pk)
+        task.status = new_status
 
         self.perform_update(serializer)
 
@@ -273,13 +220,15 @@ class TaskExecutorUpdateView(UpdateAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        new_executor = serializer.validated_data.get('executor_id')
+        new_executor_id = serializer.validated_data.get('executor_id')
 
-        if instance.executor_id == new_executor:
+        if instance.executor_id == new_executor_id:
             return Response(serializer.data)
 
-        task_executor_update_service = UpdateTaskExecutorService(instance, new_executor)
-        task_executor_update_service.execute()
+        task_executor_update_service = UpdateTaskExecutorService(
+            instance, new_executor_id
+        )
+        task_executor_update_service.update_executor()
 
         self.perform_update(serializer)
 
@@ -295,7 +244,7 @@ class TaskSubscribersViewSet(
     serializer_class = TaskSubscribersSerializer
 
     def get_queryset(self):
-        return TaskSubscribers.objects.all()
+        return TaskSubscriber.objects.all()
 
 
 class ProjectParticipantsViewSet(
@@ -307,7 +256,7 @@ class ProjectParticipantsViewSet(
     serializer_class = ProjectParticipantsSerializer
 
     def get_queryset(self):
-        return ProjectParticipants.objects.all()
+        return ProjectParticipant.objects.all()
 
 
 class TasksAttachmentsViewSet(
@@ -319,4 +268,4 @@ class TasksAttachmentsViewSet(
     serializer_class = TasksAttachmentsSerializer
 
     def get_queryset(self):
-        return TasksAttachments.objects.all()
+        return TasksAttachment.objects.all()

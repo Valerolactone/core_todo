@@ -1,12 +1,11 @@
-from django.contrib import admin
-
-from .models import (
+from api.models import (
     Project,
-    ProjectParticipants,
+    ProjectParticipant,
     Task,
-    TasksAttachments,
-    TaskSubscribers,
+    TasksAttachment,
+    TaskSubscriber,
 )
+from django.contrib import admin
 
 
 @admin.register(Project)
@@ -19,16 +18,16 @@ class TaskAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(ProjectParticipants)
+@admin.register(ProjectParticipant)
 class ProjectParticipantsAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(TaskSubscribers)
+@admin.register(TaskSubscriber)
 class TaskSubscribersAdmin(admin.ModelAdmin):
     pass
 
 
-@admin.register(TasksAttachments)
+@admin.register(TasksAttachment)
 class TasksAttachmentsModelAdmin(admin.ModelAdmin):
     pass

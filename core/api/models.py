@@ -1,13 +1,5 @@
 from django.db import models
 
-TASK_STATUS = (
-    ('open', 'Open'),
-    ('in progress', 'In Progress'),
-    ('resolved', 'Resolved'),
-    ('reopened', 'Reopened'),
-    ('closed', 'Closed'),
-)
-
 
 class Project(models.Model):
     project_pk = models.AutoField(primary_key=True, editable=False)
@@ -20,10 +12,22 @@ class Project(models.Model):
 
 
 class Task(models.Model):
+    OPEN = 'open'
+    IN_PROGRESS = 'in progress'
+    RESOLVED = 'resolved'
+    REOPENED = 'reopened'
+    CLOSED = 'closed'
+    TASK_STATUS = (
+        (OPEN, 'Open'),
+        (IN_PROGRESS, 'In Progress'),
+        (RESOLVED, 'Resolved'),
+        (REOPENED, 'Reopened'),
+        (CLOSED, 'Closed'),
+    )
     task_pk = models.AutoField(primary_key=True, editable=False)
     title = models.CharField(max_length=100)
     description = models.TextField()
-    status = models.CharField(choices=TASK_STATUS, default='open')
+    status = models.CharField(choices=TASK_STATUS, default=OPEN)
     executor_id = models.PositiveIntegerField(null=True, blank=True)
     due_date = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -38,19 +42,19 @@ class Task(models.Model):
         )
 
 
-class TaskSubscribers(models.Model):
-    task_subscribers_pk = models.AutoField(primary_key=True, editable=False)
+class TaskSubscriber(models.Model):
+    task_subscriber_pk = models.AutoField(primary_key=True, editable=False)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     subscriber_id = models.PositiveIntegerField()
 
 
-class ProjectParticipants(models.Model):
-    project_participants_pk = models.AutoField(primary_key=True, editable=False)
+class ProjectParticipant(models.Model):
+    project_participant_pk = models.AutoField(primary_key=True, editable=False)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant_id = models.PositiveIntegerField()
 
 
-class TasksAttachments(models.Model):
-    task_attachments_pk = models.AutoField(primary_key=True, editable=False)
+class TasksAttachment(models.Model):
+    task_attachment_pk = models.AutoField(primary_key=True, editable=False)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     attachment_id = models.PositiveIntegerField()
