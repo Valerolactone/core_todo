@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
 
+from celery.schedules import crontab
+
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -14,6 +16,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "django_filters",
+    "django_celery_beat",
     "api",
 ]
 
@@ -87,6 +90,26 @@ USE_TZ = True
 STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND')
+
+CELERY_BEAT_SCHEDULE = {
+    'send_one_hour_before_the_deadline': {
+        'task': 'api.tasks.send_task_deadline_notification',
+        'schedule': crontab(minute='*/2'),
+    },
+}
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = os.getenv('EMAIL_HOST')
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+
+FIRST_EMAIL = os.getenv('FIRST_EMAIL')
+SECOND_EMAIL = os.getenv('SECOND_EMAIL')
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',

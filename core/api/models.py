@@ -34,6 +34,7 @@ class Task(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    deadline_notified = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (

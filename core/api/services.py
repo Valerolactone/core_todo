@@ -1,6 +1,12 @@
 from datetime import datetime
 
 from api.models import Project, ProjectParticipant, Task, TaskSubscriber
+from api.tasks import (
+    send_join_to_project_notification,
+    send_subscription_on_task_notification,
+)
+
+from core.settings import lazy_settings
 
 
 class UpdateTaskExecutorService:
@@ -9,12 +15,23 @@ class UpdateTaskExecutorService:
         self.new_executor_id = new_executor_id
 
     def _subscribe_executor_to_task(self):
-        TaskSubscriber.objects.get_or_create(
+        _, created_subscriber = TaskSubscriber.objects.get_or_create(
             task=self.instance, subscriber_id=self.new_executor_id
         )
-        ProjectParticipant.objects.get_or_create(
+        # TODO: передача имайла
+        if created_subscriber:
+            send_subscription_on_task_notification.delay(
+                lazy_settings.FIRST_EMAIL, self.instance.title
+            )
+
+        _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.new_executor_id
         )
+        # TODO: передача имайла
+        if created_participant:
+            send_join_to_project_notification.delay(
+                lazy_settings.FIRST_EMAIL, self.instance.project.title
+            )
 
     def _unsubscribe_executor_from_task(self):
         TaskSubscriber.objects.filter(
@@ -41,9 +58,14 @@ class ManageProjectService:
         self.user_id = user_id
 
     def add_project_participant(self):
-        ProjectParticipant.objects.get_or_create(
+        _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance, participant_id=self.user_id
         )
+        # TODO: передача имайла
+        if created_participant:
+            send_join_to_project_notification.delay(
+                lazy_settings.FIRST_EMAIL, self.instance.title
+            )
 
     def _activate_related_tasks(self):
         Task.objects.filter(project=self.instance).update(
@@ -82,19 +104,42 @@ class ManageTaskService:
         self.user_id = user_id
 
     def add_task_subscription(self):
-        TaskSubscriber.objects.get_or_create(
+        _, created_subscriber = TaskSubscriber.objects.get_or_create(
             task=self.instance, subscriber_id=self.user_id
         )
-        ProjectParticipant.objects.get_or_create(
+        # TODO: передача имайла
+        if created_subscriber:
+            send_subscription_on_task_notification.delay(
+                lazy_settings.FIRST_EMAIL, self.instance.title
+            )
+
+        _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.user_id
         )
+        # TODO: передача имайла
+        if created_participant:
+            send_join_to_project_notification.delay(
+                lazy_settings.FIRST_EMAIL, self.instance.project.title
+            )
+
         if self.instance.executor_id:
-            TaskSubscriber.objects.get_or_create(
+            _, created_subscriber = TaskSubscriber.objects.get_or_create(
                 task=self.instance, subscriber_id=self.instance.executor_id
             )
-            ProjectParticipant.objects.get_or_create(
+            # TODO: передача имайла
+            if created_subscriber:
+                send_subscription_on_task_notification.delay(
+                    lazy_settings.FIRST_EMAIL, self.instance.title
+                )
+
+            _, created_participant = ProjectParticipant.objects.get_or_create(
                 project=self.instance.project, participant_id=self.instance.executor_id
             )
+            # TODO: передача имайла
+            if created_participant:
+                send_join_to_project_notification.delay(
+                    lazy_settings.FIRST_EMAIL, self.instance.project.title
+                )
 
     def update_task_active_status(self):
         if self.instance.project.active:

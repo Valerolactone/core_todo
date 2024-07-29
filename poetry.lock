@@ -827,6 +827,21 @@ files = [
 ]
 
 [[package]]
+name = "redis"
+version = "5.0.7"
+description = "Python client for Redis database and key-value store"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "redis-5.0.7-py3-none-any.whl", hash = "sha256:0e479e24da960c690be5d9b96d21f7b918a98c0cf49af3b6fafaa0753f93a0db"},
+    {file = "redis-5.0.7.tar.gz", hash = "sha256:8f611490b93c8109b50adc317b31bfd84fff31def3475b92e7e80bf39f48175b"},
+]
+
+[package.extras]
+hiredis = ["hiredis (>=1.0.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==20.0.1)", "requests (>=2.26.0)"]
+
+[[package]]
 name = "six"
 version = "1.16.0"
 description = "Python 2 and 3 compatibility utilities"
@@ -930,4 +945,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "ebbc10f68bfa71fe39f72980e681f5f3d90561ec2bab8b753f16c9334560a598"
+content-hash = "782c8f9e721ac51fad55cc6e144c2043d08a8dbafbfdbcd56154744449c28452"

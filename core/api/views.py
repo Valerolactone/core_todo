@@ -1,11 +1,11 @@
-from django.db import transaction
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, viewsets
-from rest_framework.generics import UpdateAPIView
-from rest_framework.response import Response
-
-from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
-from .serializers import (
+from api.models import (
+    Project,
+    ProjectParticipant,
+    Task,
+    TasksAttachment,
+    TaskSubscriber,
+)
+from api.serializers import (
     AdminProjectActivationSerializer,
     AdminProjectSerializer,
     AdminTaskActivationSerializer,
@@ -18,7 +18,19 @@ from .serializers import (
     TaskStatusSerializer,
     TaskSubscribersSerializer,
 )
-from .services import ManageProjectService, ManageTaskService, UpdateTaskExecutorService
+from api.services import (
+    ManageProjectService,
+    ManageTaskService,
+    UpdateTaskExecutorService,
+)
+from api.tasks import send_task_status_update_notification
+from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, viewsets
+from rest_framework.generics import UpdateAPIView
+from rest_framework.response import Response
+
+from core.settings import lazy_settings
 
 
 class ProjectViewSet(
@@ -193,8 +205,14 @@ class TaskStatusUpdateView(UpdateAPIView):
         if instance.status == new_status:
             return Response(serializer.data)
 
+        # TODO: получение списка имаилов, не уверена, что это тут должно быть
+        send_task_status_update_notification.delay(
+            [lazy_settings.FIRST_EMAIL, lazy_settings.SECOND_EMAIL],
+            instance.title,
+            instance.status,
+            new_status,
+        )
         self.perform_update(serializer)
-
         return Response(serializer.data)
 
 
