@@ -30,7 +30,6 @@ services:
   celery:
     build:
       context: .
-    command: poetry run celery -A core worker --loglevel=info
     depends_on:
       - redis
       - postgres-db
@@ -40,7 +39,6 @@ services:
   celery-beat:
     build:
       context: .
-    command: poetry run celery -A core beat --loglevel=info
     depends_on:
       - celery
       - redis
