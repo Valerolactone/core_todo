@@ -38,7 +38,7 @@ class UpdateTaskExecutorService(NotificationService):
         )
         # TODO: получение имейла для нового исполнителя
         self._notify_new_member(
-            settings.SECOND_EMAIL,
+            settings.TEST_EMAIL_FOR_CELERY_1,
             created_subscriber=created_subscriber,
             task_title=self.instance.title,
             created_participant=created_participant,
@@ -75,7 +75,7 @@ class ManageProjectService(NotificationService):
         )
         # TODO: получение имейла для нового участника проекта
         self._notify_new_member(
-            settings.FIRST_EMAIL,
+            settings.TEST_EMAIL_FOR_CELERY,
             created_participant=created_participant,
             project_title=self.instance.title,
         )
@@ -126,7 +126,7 @@ class ManageTaskService(NotificationService):
         )
         # TODO: получение имейла для нового участника
         self._notify_new_member(
-            settings.FIRST_EMAIL,
+            settings.TEST_EMAIL_FOR_CELERY,
             created_subscriber=created_subscriber,
             task_title=self.instance.title,
             created_participant=created_participant,
@@ -143,7 +143,7 @@ class ManageTaskService(NotificationService):
             )
             # TODO: получение имейла для нового исполнителя
             self._notify_new_member(
-                settings.SECOND_EMAIL,
+                settings.TEST_EMAIL_FOR_CELERY_1,
                 created_subscriber=created_subscriber,
                 task_title=self.instance.title,
                 created_participant=created_participant,

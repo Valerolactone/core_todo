@@ -213,7 +213,7 @@ class TaskStatusUpdateView(UpdateAPIView):
 
         # TODO: получение списка имаилов для подписчиков задачи
         send_task_status_update_notification.delay(
-            [settings.FIRST_EMAIL, settings.SECOND_EMAIL],
+            [settings.TEST_EMAIL_FOR_CELERY, settings.TEST_EMAIL_FOR_CELERY_1],
             instance.title,
             old_status,
             new_status,
@@ -273,13 +273,15 @@ class TaskSubscribersViewSet(
 
         self.perform_create(serializer)
 
-        send_subscription_on_task_notification.delay(settings.FIRST_EMAIL, task.title)
+        send_subscription_on_task_notification.delay(
+            settings.TEST_EMAIL_FOR_CELERY, task.title
+        )
 
         if not ProjectParticipant.objects.filter(
             project=task.project.project_pk, participant_id=subscriber_id
         ).exists():
             send_join_to_project_notification.delay(
-                settings.FIRST_EMAIL, task.project.title
+                settings.TEST_EMAIL_FOR_CELERY, task.project.title
             )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -310,7 +312,9 @@ class ProjectParticipantsViewSet(
 
         self.perform_create(serializer)
 
-        send_join_to_project_notification.delay(settings.FIRST_EMAIL, project.title)
+        send_join_to_project_notification.delay(
+            settings.TEST_EMAIL_FOR_CELERY, project.title
+        )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

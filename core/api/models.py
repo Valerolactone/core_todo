@@ -34,7 +34,6 @@ class Task(models.Model):
     deleted_at = models.DateTimeField(null=True, blank=True)
     active = models.BooleanField(default=True)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    deadline_notified = models.BooleanField(default=False)
 
     class Meta:
         unique_together = (
@@ -59,3 +58,17 @@ class TasksAttachment(models.Model):
     task_attachment_pk = models.AutoField(primary_key=True, editable=False)
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     attachment_id = models.PositiveIntegerField()
+
+
+class TaskNotification(models.Model):
+    UPDATE_STATUS = 'update status'
+    DEADLINE = 'deadline'
+    NOTIFICATION_TYPE = (
+        (UPDATE_STATUS, 'update status'),
+        (DEADLINE, 'deadline'),
+    )
+    task_notification_pk = models.AutoField(primary_key=True, editable=False)
+    task = models.ForeignKey(Task, on_delete=models.CASCADE)
+    notified_user_id = models.PositiveIntegerField()
+    notification_date = models.DateTimeField(auto_now_add=True)
+    notification_type = models.CharField(choices=NOTIFICATION_TYPE)
