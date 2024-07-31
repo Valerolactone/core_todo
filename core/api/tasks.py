@@ -31,6 +31,10 @@ def send_notification(recipient: str, subject: str, body: str):
             f'Error sending email to {recipient}: SMTP server was disconnected.'
         )
     except smtplib.SMTPException as e:
+        logger.error(f'SMTP error sending email to {recipient}: {str(e)}')
+    except TypeError as e:
+        logger.error(f'Type error sending email to {recipient}: {str(e)}')
+    except Exception as e:
         logger.error(f'Error sending email to {recipient}: {str(e)}')
 
 
@@ -70,6 +74,10 @@ def send_notification_to_all_subscribers(
             f'Error sending email to {recipient}: SMTP server was disconnected.'
         )
     except smtplib.SMTPException as e:
+        logger.error(f'SMTP error sending email to {recipient}: {str(e)}')
+    except TypeError as e:
+        logger.error(f'Type error sending email to {recipient}: {str(e)}')
+    except Exception as e:
         logger.error(f'Error sending email to {recipient}: {str(e)}')
 
 
