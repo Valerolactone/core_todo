@@ -686,7 +686,12 @@ class TaskSubscribersViewSetTests(APITestCase):
         )
 
     @patch('api.tasks.send_subscription_on_task_notification.delay')
-    def test_create_subscription(self, mock_send_subscription_on_task_notification):
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_subscription(
+        self,
+        mock_send_subscription_on_task_notification,
+        mock_send_join_to_project_notification,
+    ):
         """
         Ensure we can create a new subscription.
         """
@@ -698,6 +703,7 @@ class TaskSubscribersViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         mock_send_subscription_on_task_notification.assert_called_once()
+        mock_send_join_to_project_notification.assert_called_once()
 
     def test_update_subscription(self):
         """
