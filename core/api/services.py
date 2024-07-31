@@ -5,11 +5,25 @@ from api.tasks import (
     send_join_to_project_notification,
     send_subscription_on_task_notification,
 )
+from django.conf import settings
 
-from core.settings import lazy_settings
+
+class NotificationService:
+    def _notify_new_member(
+        self,
+        to_email,
+        created_subscriber=None,
+        task_title=None,
+        created_participant=None,
+        project_title=None,
+    ):
+        if created_subscriber:
+            send_subscription_on_task_notification.delay(to_email, task_title)
+        if created_participant:
+            send_join_to_project_notification.delay(to_email, project_title)
 
 
-class UpdateTaskExecutorService:
+class UpdateTaskExecutorService(NotificationService):
     def __init__(self, instance: Task, new_executor_id: int):
         self.instance = instance
         self.new_executor_id = new_executor_id
@@ -18,20 +32,18 @@ class UpdateTaskExecutorService:
         _, created_subscriber = TaskSubscriber.objects.get_or_create(
             task=self.instance, subscriber_id=self.new_executor_id
         )
-        # TODO: передача имайла
-        if created_subscriber:
-            send_subscription_on_task_notification.delay(
-                lazy_settings.FIRST_EMAIL, self.instance.title
-            )
 
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.new_executor_id
         )
-        # TODO: передача имайла
-        if created_participant:
-            send_join_to_project_notification.delay(
-                lazy_settings.FIRST_EMAIL, self.instance.project.title
-            )
+        # TODO: получение имейла для нового исполнителя
+        self._notify_new_member(
+            settings.SECOND_EMAIL,
+            created_subscriber=created_subscriber,
+            task_title=self.instance.title,
+            created_participant=created_participant,
+            project_title=self.instance.project.title,
+        )
 
     def _unsubscribe_executor_from_task(self):
         TaskSubscriber.objects.filter(
@@ -51,7 +63,7 @@ class UpdateTaskExecutorService:
             self._update_subscription()
 
 
-class ManageProjectService:
+class ManageProjectService(NotificationService):
     def __init__(self, instance: Project, active_status=None, user_id=None):
         self.instance = instance
         self.active_status = active_status
@@ -61,11 +73,12 @@ class ManageProjectService:
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance, participant_id=self.user_id
         )
-        # TODO: передача имайла
-        if created_participant:
-            send_join_to_project_notification.delay(
-                lazy_settings.FIRST_EMAIL, self.instance.title
-            )
+        # TODO: получение имейла для нового участника проекта
+        self._notify_new_member(
+            settings.FIRST_EMAIL,
+            created_participant=created_participant,
+            project_title=self.instance.title,
+        )
 
     def _activate_related_tasks(self):
         Task.objects.filter(project=self.instance).update(
@@ -97,7 +110,7 @@ class ManageProjectService:
         self._deactivate_related_tasks()
 
 
-class ManageTaskService:
+class ManageTaskService(NotificationService):
     def __init__(self, instance: Task, active_status=None, user_id=None):
         self.instance = instance
         self.active_status = active_status
@@ -107,39 +120,35 @@ class ManageTaskService:
         _, created_subscriber = TaskSubscriber.objects.get_or_create(
             task=self.instance, subscriber_id=self.user_id
         )
-        # TODO: передача имайла
-        if created_subscriber:
-            send_subscription_on_task_notification.delay(
-                lazy_settings.FIRST_EMAIL, self.instance.title
-            )
 
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.user_id
         )
-        # TODO: передача имайла
-        if created_participant:
-            send_join_to_project_notification.delay(
-                lazy_settings.FIRST_EMAIL, self.instance.project.title
-            )
+        # TODO: получение имейла для нового участника
+        self._notify_new_member(
+            settings.FIRST_EMAIL,
+            created_subscriber=created_subscriber,
+            task_title=self.instance.title,
+            created_participant=created_participant,
+            project_title=self.instance.project.title,
+        )
 
         if self.instance.executor_id:
             _, created_subscriber = TaskSubscriber.objects.get_or_create(
                 task=self.instance, subscriber_id=self.instance.executor_id
             )
-            # TODO: передача имайла
-            if created_subscriber:
-                send_subscription_on_task_notification.delay(
-                    lazy_settings.FIRST_EMAIL, self.instance.title
-                )
 
             _, created_participant = ProjectParticipant.objects.get_or_create(
                 project=self.instance.project, participant_id=self.instance.executor_id
             )
-            # TODO: передача имайла
-            if created_participant:
-                send_join_to_project_notification.delay(
-                    lazy_settings.FIRST_EMAIL, self.instance.project.title
-                )
+            # TODO: получение имейла для нового исполнителя
+            self._notify_new_member(
+                settings.SECOND_EMAIL,
+                created_subscriber=created_subscriber,
+                task_title=self.instance.title,
+                created_participant=created_participant,
+                project_title=self.instance.project.title,
+            )
 
     def update_task_active_status(self):
         if self.instance.project.active:

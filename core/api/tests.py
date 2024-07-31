@@ -1,10 +1,15 @@
 from datetime import datetime
 
+from api.models import (
+    Project,
+    ProjectParticipant,
+    Task,
+    TasksAttachment,
+    TaskSubscriber,
+)
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
-
-from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
 
 
 class ProjectTests(APITestCase):

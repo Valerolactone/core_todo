@@ -24,13 +24,12 @@ from api.services import (
     UpdateTaskExecutorService,
 )
 from api.tasks import send_task_status_update_notification
+from django.conf import settings
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, viewsets
 from rest_framework.generics import UpdateAPIView
 from rest_framework.response import Response
-
-from core.settings import lazy_settings
 
 
 class ProjectViewSet(
@@ -200,19 +199,22 @@ class TaskStatusUpdateView(UpdateAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+        old_status = instance.status
         new_status = serializer.validated_data.get('status')
 
         if instance.status == new_status:
             return Response(serializer.data)
 
-        # TODO: получение списка имаилов, не уверена, что это тут должно быть
+        self.perform_update(serializer)
+
+        # TODO: получение списка имаилов для подписчиков задачи
         send_task_status_update_notification.delay(
-            [lazy_settings.FIRST_EMAIL, lazy_settings.SECOND_EMAIL],
+            [settings.FIRST_EMAIL, settings.SECOND_EMAIL],
             instance.title,
-            instance.status,
+            old_status,
             new_status,
         )
-        self.perform_update(serializer)
+
         return Response(serializer.data)
 
 

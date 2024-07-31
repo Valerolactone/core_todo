@@ -1,6 +1,11 @@
+from api.models import (
+    Project,
+    ProjectParticipant,
+    Task,
+    TasksAttachment,
+    TaskSubscriber,
+)
 from rest_framework import serializers
-
-from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
 
 
 class ProjectSerializer(serializers.ModelSerializer):
