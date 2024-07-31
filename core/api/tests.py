@@ -272,9 +272,6 @@ class TaskTests(APITestCase):
             project=self.project_2,
             active=False,
         )
-        self.task_subscription = TaskSubscriber.objects.create(
-            task=self.task_2, subscriber_id=12
-        )
 
     def test_get_list_of_active_tasks(self):
         """
