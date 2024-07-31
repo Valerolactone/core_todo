@@ -23,11 +23,15 @@ from api.services import (
     ManageTaskService,
     UpdateTaskExecutorService,
 )
-from api.tasks import send_task_status_update_notification
+from api.tasks import (
+    send_join_to_project_notification,
+    send_subscription_on_task_notification,
+    send_task_status_update_notification,
+)
 from django.conf import settings
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, viewsets
+from rest_framework import filters, mixins, status, viewsets
 from rest_framework.generics import UpdateAPIView
 from rest_framework.response import Response
 
@@ -255,6 +259,31 @@ class TaskSubscribersViewSet(
     def get_queryset(self):
         return TaskSubscriber.objects.all()
 
+    # TODO: получить имейл участника
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = serializer.validated_data.get('task')
+        subscriber_id = serializer.validated_data.get('subscriber_id')
+
+        if TaskSubscriber.objects.filter(
+            task=task.task_pk, subscriber_id=subscriber_id
+        ).exists():
+            return Response(serializer.data)
+
+        self.perform_create(serializer)
+
+        send_subscription_on_task_notification.delay(settings.FIRST_EMAIL, task.title)
+
+        if not ProjectParticipant.objects.filter(
+            project=task.project.project_pk, participant_id=subscriber_id
+        ).exists():
+            send_join_to_project_notification.delay(
+                settings.FIRST_EMAIL, task.project.title
+            )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ProjectParticipantsViewSet(
     mixins.ListModelMixin,
@@ -266,6 +295,24 @@ class ProjectParticipantsViewSet(
 
     def get_queryset(self):
         return ProjectParticipant.objects.all()
+
+    # TODO: получить имейл участника
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data.get('project')
+        participant_id = serializer.validated_data.get('participant_id')
+
+        if ProjectParticipant.objects.filter(
+            project=project.project_pk, participant_id=participant_id
+        ).exists():
+            return Response(serializer.data)
+
+        self.perform_create(serializer)
+
+        send_join_to_project_notification.delay(settings.FIRST_EMAIL, project.title)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class TasksAttachmentsViewSet(

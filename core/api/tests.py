@@ -8,11 +8,7 @@ from api.models import (
     TasksAttachment,
     TaskSubscriber,
 )
-from api.tasks import (
-    send_join_to_project_notification,
-    send_subscription_on_task_notification,
-    send_task_status_update_notification,
-)
+from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -129,8 +125,8 @@ class ProjectTests(APITestCase):
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
 
-    @patch('smtplib.SMTP')
-    def test_create_project(self, mock_smtp):
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_project(self, mock_send_join_to_project_notification):
         """
         Ensure we can create a new project and add new project participant.
         """
@@ -149,23 +145,10 @@ class ProjectTests(APITestCase):
             ).exists()
         )
 
-        mock_instance = mock_smtp.return_value
-        mock_instance.starttls.return_value = None
+        mock_send_join_to_project_notification.assert_called_once()
 
-        to_email = 'email@example.com'
-        project_title = 'Test Project 3'
-
-        send_join_to_project_notification(to_email, project_title)
-
-        mock_smtp.assert_called_once_with('smtp.example.com', 587)
-        mock_instance.starttls.assert_called_once()
-        mock_instance.login.assert_called_once_with('username', 'password')
-        mock_instance.sendmail.assert_called_once_with(
-            'from@example.com',
-            to_email,
-        )
-
-    def test_create_project_as_admin(self):
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_project_as_admin(self, mock_send_join_to_project_notification):
         """
         Ensure we can create a new project and add new project participant.
         """
@@ -183,6 +166,7 @@ class ProjectTests(APITestCase):
                 project=response.data.get("project_pk")
             ).exists()
         )
+        mock_send_join_to_project_notification.assert_called_once()
 
     def test_update_project(self):
         """
@@ -373,7 +357,13 @@ class TaskTests(APITestCase):
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
 
-    def test_create_task(self):
+    @patch('api.tasks.send_subscription_on_task_notification.delay')
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_task(
+        self,
+        mock_send_subscription_on_task_notification,
+        mock_send_join_to_project_notification,
+    ):
         """
         Ensure we can create a new task and add a new task subscriber and new project participant.
         """
@@ -395,7 +385,16 @@ class TaskTests(APITestCase):
             ProjectParticipant.objects.filter(project=self.project_1).exists()
         )
 
-    def test_create_task_as_admin(self):
+        mock_send_subscription_on_task_notification.assert_called_once()
+        mock_send_join_to_project_notification.assert_called_once()
+
+    @patch('api.tasks.send_subscription_on_task_notification.delay')
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_task_as_admin(
+        self,
+        mock_send_subscription_on_task_notification,
+        mock_send_join_to_project_notification,
+    ):
         """
         Ensure we can create a new task and add a new task subscriber.
         """
@@ -416,6 +415,9 @@ class TaskTests(APITestCase):
         self.assertTrue(
             ProjectParticipant.objects.filter(project=self.project_1).exists()
         )
+
+        mock_send_subscription_on_task_notification.assert_called_once()
+        mock_send_join_to_project_notification.assert_called_once()
 
     def test_update_task(self):
         """
@@ -443,7 +445,8 @@ class TaskTests(APITestCase):
         self.assertFalse(Task.objects.filter(title=self.task_1.title).exists())
         self.assertTrue(Task.objects.filter(title='New Task title').exists())
 
-    def test_update_task_status(self):
+    @patch('api.tasks.send_task_status_update_notification.delay')
+    def test_update_task_status(self, mock_send_task_status_update_notification):
         """
         Ensure we can update task status.
         """
@@ -460,7 +463,15 @@ class TaskTests(APITestCase):
             Task.objects.filter(task_pk=self.task_1.task_pk, status='closed').exists()
         )
 
-    def test_add_task_executor(self):
+        mock_send_task_status_update_notification.assert_called_once()
+
+    @patch('api.tasks.send_subscription_on_task_notification.delay')
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_add_task_executor(
+        self,
+        mock_send_subscription_on_task_notification,
+        mock_send_join_to_project_notification,
+    ):
         """
         Ensure we can add task executor and add new task subscription and new project participant.
         """
@@ -485,6 +496,9 @@ class TaskTests(APITestCase):
             ).exists()
         )
 
+        mock_send_subscription_on_task_notification.assert_called_once()
+        mock_send_join_to_project_notification.assert_called_once()
+
     def test_remove_task_executor(self):
         """
         Ensure we can remove task executor and remove him from task subscription.
@@ -506,7 +520,13 @@ class TaskTests(APITestCase):
             TaskSubscriber.objects.filter(task=self.task_1, subscriber_id=10).exists()
         )
 
-    def test_update_task_executor(self):
+    @patch('api.tasks.send_subscription_on_task_notification.delay')
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_update_task_executor(
+        self,
+        mock_send_subscription_on_task_notification,
+        mock_send_join_to_project_notification,
+    ):
         """
         Ensure we can update task executor and remove old one from task subscription and add new one
         to project participants and task subscription.
@@ -539,6 +559,9 @@ class TaskTests(APITestCase):
                 project=self.task_2.project, participant_id=12
             ).exists()
         )
+
+        mock_send_subscription_on_task_notification.assert_called_once()
+        mock_send_join_to_project_notification.assert_called_once()
 
     def test_delete_task(self):
         """
@@ -665,7 +688,8 @@ class TaskSubscribersViewSetTests(APITestCase):
             response.data.get('subscriber_id'), self.subscription_1.subscriber_id
         )
 
-    def test_create_subscription(self):
+    @patch('api.tasks.send_subscription_on_task_notification.delay')
+    def test_create_subscription(self, mock_send_subscription_on_task_notification):
         """
         Ensure we can create a new subscription.
         """
@@ -675,6 +699,8 @@ class TaskSubscribersViewSetTests(APITestCase):
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        mock_send_subscription_on_task_notification.assert_called_once()
 
     def test_update_subscription(self):
         """
@@ -862,7 +888,8 @@ class ProjectParticipantsViewSetTests(APITestCase):
             response.data.get('participant_id'), self.participation_1.participant_id
         )
 
-    def test_create_participation(self):
+    @patch('api.tasks.send_join_to_project_notification.delay')
+    def test_create_participation(self, mock_send_join_to_project_notification):
         """
         Ensure we can create a new participation.
         """
@@ -872,6 +899,7 @@ class ProjectParticipantsViewSetTests(APITestCase):
             format='json',
         )
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_send_join_to_project_notification.assert_called_once()
 
     def test_update_participation(self):
         """
