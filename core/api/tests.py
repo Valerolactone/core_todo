@@ -1,4 +1,5 @@
 from datetime import datetime
+from unittest.mock import patch
 
 from api.models import (
     Project,
@@ -6,6 +7,11 @@ from api.models import (
     Task,
     TasksAttachment,
     TaskSubscriber,
+)
+from api.tasks import (
+    send_join_to_project_notification,
+    send_subscription_on_task_notification,
+    send_task_status_update_notification,
 )
 from django.urls import reverse
 from rest_framework import status
@@ -123,7 +129,8 @@ class ProjectTests(APITestCase):
         self.assertIn('active', response.data.keys())
         self.assertIn('deleted_at', response.data.keys())
 
-    def test_create_project(self):
+    @patch('smtplib.SMTP')
+    def test_create_project(self, mock_smtp):
         """
         Ensure we can create a new project and add new project participant.
         """
@@ -140,6 +147,22 @@ class ProjectTests(APITestCase):
             ProjectParticipant.objects.filter(
                 project=response.data.get("project_pk")
             ).exists()
+        )
+
+        mock_instance = mock_smtp.return_value
+        mock_instance.starttls.return_value = None
+
+        to_email = 'email@example.com'
+        project_title = 'Test Project 3'
+
+        send_join_to_project_notification(to_email, project_title)
+
+        mock_smtp.assert_called_once_with('smtp.example.com', 587)
+        mock_instance.starttls.assert_called_once()
+        mock_instance.login.assert_called_once_with('username', 'password')
+        mock_instance.sendmail.assert_called_once_with(
+            'from@example.com',
+            to_email,
         )
 
     def test_create_project_as_admin(self):
