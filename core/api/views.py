@@ -1,11 +1,11 @@
-from django.db import transaction
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, mixins, viewsets
-from rest_framework.generics import UpdateAPIView
-from rest_framework.response import Response
-
-from .models import Project, ProjectParticipant, Task, TasksAttachment, TaskSubscriber
-from .serializers import (
+from api.models import (
+    Project,
+    ProjectParticipant,
+    Task,
+    TasksAttachment,
+    TaskSubscriber,
+)
+from api.serializers import (
     AdminProjectActivationSerializer,
     AdminProjectSerializer,
     AdminTaskActivationSerializer,
@@ -18,7 +18,22 @@ from .serializers import (
     TaskStatusSerializer,
     TaskSubscribersSerializer,
 )
-from .services import ManageProjectService, ManageTaskService, UpdateTaskExecutorService
+from api.services import (
+    ManageProjectService,
+    ManageTaskService,
+    UpdateTaskExecutorService,
+)
+from api.tasks import (
+    send_join_to_project_notification,
+    send_subscription_on_task_notification,
+    send_task_status_update_notification,
+)
+from django.conf import settings
+from django.db import transaction
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, mixins, status, viewsets
+from rest_framework.generics import UpdateAPIView
+from rest_framework.response import Response
 
 
 class ProjectViewSet(
@@ -188,12 +203,21 @@ class TaskStatusUpdateView(UpdateAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+        old_status = instance.status
         new_status = serializer.validated_data.get('status')
 
         if instance.status == new_status:
             return Response(serializer.data)
 
         self.perform_update(serializer)
+
+        # TODO: получение списка имаилов для подписчиков задачи
+        send_task_status_update_notification.delay(
+            [settings.TEST_EMAIL_FOR_CELERY, settings.TEST_EMAIL_FOR_CELERY_1],
+            instance.title,
+            old_status,
+            new_status,
+        )
 
         return Response(serializer.data)
 
@@ -235,6 +259,33 @@ class TaskSubscribersViewSet(
     def get_queryset(self):
         return TaskSubscriber.objects.all()
 
+    # TODO: получить имейл участника
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        task = serializer.validated_data.get('task')
+        subscriber_id = serializer.validated_data.get('subscriber_id')
+
+        if TaskSubscriber.objects.filter(
+            task=task.task_pk, subscriber_id=subscriber_id
+        ).exists():
+            return Response(serializer.data)
+
+        self.perform_create(serializer)
+
+        send_subscription_on_task_notification.delay(
+            settings.TEST_EMAIL_FOR_CELERY, task.title
+        )
+
+        if not ProjectParticipant.objects.filter(
+            project=task.project.project_pk, participant_id=subscriber_id
+        ).exists():
+            send_join_to_project_notification.delay(
+                settings.TEST_EMAIL_FOR_CELERY, task.project.title
+            )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ProjectParticipantsViewSet(
     mixins.ListModelMixin,
@@ -246,6 +297,26 @@ class ProjectParticipantsViewSet(
 
     def get_queryset(self):
         return ProjectParticipant.objects.all()
+
+    # TODO: получить имейл участника
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        project = serializer.validated_data.get('project')
+        participant_id = serializer.validated_data.get('participant_id')
+
+        if ProjectParticipant.objects.filter(
+            project=project.project_pk, participant_id=participant_id
+        ).exists():
+            return Response(serializer.data)
+
+        self.perform_create(serializer)
+
+        send_join_to_project_notification.delay(
+            settings.TEST_EMAIL_FOR_CELERY, project.title
+        )
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class TasksAttachmentsViewSet(

@@ -1,7 +1,4 @@
-from django.urls import path
-from rest_framework.routers import DefaultRouter
-
-from .views import (
+from api.views import (
     AdminProjectActivationView,
     AdminProjectViewSet,
     AdminTaskActivationView,
@@ -14,6 +11,8 @@ from .views import (
     TaskSubscribersViewSet,
     TaskViewSet,
 )
+from django.urls import path
+from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
 router.register(r'projects', ProjectViewSet, basename='project')

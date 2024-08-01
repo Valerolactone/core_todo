@@ -25,6 +25,10 @@ jobs:
           --health-interval 10s 
           --health-timeout 5s 
           --health-retries 5
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
 
     steps:
     - name: Checkout branch
@@ -45,6 +49,16 @@ jobs:
       run: |
         cd core
         poetry run python manage.py migrate --settings=core.settings.ci_cd
+
+    - name: Start Celery worker
+      run: |
+        cd core
+        poetry run celery -A core worker --loglevel=info &
+
+    - name: Start Celery beat
+      run: |
+        cd core
+        poetry run celery -A core beat --loglevel=info &
 
     - name: Run Tests
       env:
