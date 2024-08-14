@@ -1,3 +1,5 @@
+import asyncio
+
 from api.models import (
     Project,
     ProjectParticipant,
@@ -28,7 +30,8 @@ from api.tasks import (
     send_subscription_on_task_notification,
     send_task_status_update_notification,
 )
-from django.conf import settings
+from api.utils import get_emails_for_notification
+from asgiref.sync import sync_to_async
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
@@ -52,12 +55,14 @@ class ProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_project_service = ManageProjectService(instance, user_id=1)
+        manage_project_service = ManageProjectService(
+            self.request, instance, user_id=self.request.user["user_pk"]
+        )
         manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        manage_project_service = ManageProjectService(instance)
+        manage_project_service = ManageProjectService(self.request, instance)
         manage_project_service.deactivate_project()
 
 
@@ -77,12 +82,14 @@ class AdminProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_project_service = ManageProjectService(instance, user_id=1)
+        manage_project_service = ManageProjectService(
+            self.request, instance, user_id=self.request.user["user_pk"]
+        )
         manage_project_service.add_project_participant()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        manage_project_service = ManageProjectService(instance)
+        manage_project_service = ManageProjectService(self.request, instance)
         manage_project_service.deactivate_project()
 
 
@@ -103,7 +110,7 @@ class AdminProjectActivationView(UpdateAPIView):
             return Response(serializer.data)
 
         manage_project_service = ManageProjectService(
-            instance, active_status=active_status
+            self.request, instance, active_status=active_status
         )
         manage_project_service.update_project_active_status()
 
@@ -131,12 +138,14 @@ class TaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_task_serviced = ManageTaskService(instance, user_id=1)
+        manage_task_serviced = ManageTaskService(
+            self.request, instance, user_id=self.request.user["user_pk"]
+        )
         manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        manage_task_serviced = ManageTaskService(instance)
+        manage_task_serviced = ManageTaskService(self.request, instance)
         manage_task_serviced.deactivate_task()
 
 
@@ -159,12 +168,14 @@ class AdminTaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_task_serviced = ManageTaskService(instance, user_id=1)
+        manage_task_serviced = ManageTaskService(
+            self.request, instance, user_id=self.request.user["user_pk"]
+        )
         manage_task_serviced.add_task_subscription()
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        manage_task_serviced = ManageTaskService(instance)
+        manage_task_serviced = ManageTaskService(self.request, instance)
         manage_task_serviced.deactivate_task()
 
 
@@ -184,7 +195,9 @@ class AdminTaskActivationView(UpdateAPIView):
         if instance.active == active_status or not instance.project.active:
             return Response(serializer.data)
 
-        manage_task_service = ManageTaskService(instance, active_status=active_status)
+        manage_task_service = ManageTaskService(
+            self.request, instance, active_status=active_status
+        )
         manage_task_service.update_task_active_status()
 
         self.perform_update(serializer)
@@ -211,9 +224,12 @@ class TaskStatusUpdateView(UpdateAPIView):
 
         self.perform_update(serializer)
 
-        # TODO: получение списка имаилов для подписчиков задачи
+        ids = TaskSubscriber.objects.filter(task=instance).values_list(
+            'subscriber_id', flat=True
+        )
+        emails_for_notification = asyncio.run(get_emails_for_notification(ids=ids))
         send_task_status_update_notification.delay(
-            [settings.TEST_EMAIL_FOR_CELERY, settings.TEST_EMAIL_FOR_CELERY_1],
+            emails_for_notification,
             instance.title,
             old_status,
             new_status,
@@ -239,7 +255,7 @@ class TaskExecutorUpdateView(UpdateAPIView):
             return Response(serializer.data)
 
         task_executor_update_service = UpdateTaskExecutorService(
-            instance, new_executor_id
+            request, instance, new_executor_id
         )
         task_executor_update_service.update_executor()
 
@@ -259,7 +275,6 @@ class TaskSubscribersViewSet(
     def get_queryset(self):
         return TaskSubscriber.objects.all()
 
-    # TODO: получить имейл участника
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -273,15 +288,24 @@ class TaskSubscribersViewSet(
 
         self.perform_create(serializer)
 
-        send_subscription_on_task_notification.delay(
-            settings.TEST_EMAIL_FOR_CELERY, task.title
-        )
+        if subscriber_id == self.request.user["user_pk"]:
+            email_for_notification = self.request.user["email"]
+        else:
+            email_for_notification = asyncio.run(
+                get_emails_for_notification(
+                    ids=[
+                        subscriber_id,
+                    ]
+                )
+            ).get(f"{subscriber_id}")
+
+        send_subscription_on_task_notification.delay(email_for_notification, task.title)
 
         if not ProjectParticipant.objects.filter(
             project=task.project.project_pk, participant_id=subscriber_id
         ).exists():
             send_join_to_project_notification.delay(
-                settings.TEST_EMAIL_FOR_CELERY, task.project.title
+                email_for_notification, task.project.title
             )
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -298,7 +322,6 @@ class ProjectParticipantsViewSet(
     def get_queryset(self):
         return ProjectParticipant.objects.all()
 
-    # TODO: получить имейл участника
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -312,9 +335,18 @@ class ProjectParticipantsViewSet(
 
         self.perform_create(serializer)
 
-        send_join_to_project_notification.delay(
-            settings.TEST_EMAIL_FOR_CELERY, project.title
-        )
+        if participant_id == self.request.user["user_pk"]:
+            email_for_notification = self.request.user["email"]
+        else:
+            email_for_notification = asyncio.run(
+                get_emails_for_notification(
+                    ids=[
+                        participant_id,
+                    ]
+                )
+            ).get(f"{participant_id}")
+
+        send_join_to_project_notification.delay(email_for_notification, project.title)
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

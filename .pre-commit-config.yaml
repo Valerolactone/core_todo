@@ -21,7 +21,11 @@ repos:
         language: system
         types: [ file, python ]
         args: [ --ignore-missing-imports ]
-        exclude: migrations
+        exclude: |
+          (?x)^(
+          ^core/api/migrations/.*|
+          )$ |
+          utils.py |
 
       - id: flake8
         name: flake8

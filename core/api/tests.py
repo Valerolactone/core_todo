@@ -892,16 +892,22 @@ class ProjectParticipantsViewSetTests(APITestCase):
         )
 
     @patch('api.tasks.send_join_to_project_notification.delay')
-    def test_create_participation(self, mock_send_join_to_project_notification):
+    @patch('api.views.get_emails_for_notification')
+    async def test_create_participation(
+        self, mock_send_join_to_project_notification, mock_get_emails
+    ):
         """
         Ensure we can create a new participation.
         """
+        mock_get_emails.return_value = {3: "notification@example.com"}
         response = self.client.post(
             reverse('project_participant-list'),
             {'project': self.project.project_pk, 'participant_id': 3},
             format='json',
         )
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(ProjectParticipant.objects.get().participant_id, 3)
         mock_send_join_to_project_notification.assert_called_once()
 
     def test_update_participation(self):

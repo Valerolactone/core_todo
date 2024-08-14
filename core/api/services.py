@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime
 
 from api.models import Project, ProjectParticipant, Task, TaskSubscriber
@@ -5,7 +6,7 @@ from api.tasks import (
     send_join_to_project_notification,
     send_subscription_on_task_notification,
 )
-from django.conf import settings
+from api.utils import get_emails_for_notification
 
 
 class NotificationService:
@@ -24,7 +25,8 @@ class NotificationService:
 
 
 class UpdateTaskExecutorService(NotificationService):
-    def __init__(self, instance: Task, new_executor_id: int):
+    def __init__(self, request, instance: Task, new_executor_id: int):
+        self.request = request
         self.instance = instance
         self.new_executor_id = new_executor_id
 
@@ -36,9 +38,17 @@ class UpdateTaskExecutorService(NotificationService):
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.new_executor_id
         )
-        # TODO: получение имейла для нового исполнителя
+
+        email_for_notification = asyncio.run(
+            get_emails_for_notification(
+                ids=[
+                    self.new_executor_id,
+                ]
+            )
+        ).get(f"{self.new_executor_id}")
+
         self._notify_new_member(
-            settings.TEST_EMAIL_FOR_CELERY_1,
+            email_for_notification,
             created_subscriber=created_subscriber,
             task_title=self.instance.title,
             created_participant=created_participant,
@@ -64,7 +74,8 @@ class UpdateTaskExecutorService(NotificationService):
 
 
 class ManageProjectService(NotificationService):
-    def __init__(self, instance: Project, active_status=None, user_id=None):
+    def __init__(self, request, instance: Project, active_status=None, user_id=None):
+        self.request = request
         self.instance = instance
         self.active_status = active_status
         self.user_id = user_id
@@ -73,9 +84,17 @@ class ManageProjectService(NotificationService):
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance, participant_id=self.user_id
         )
-        # TODO: получение имейла для нового участника проекта
+
+        email_for_notification = asyncio.run(
+            get_emails_for_notification(
+                ids=[
+                    self.user_id,
+                ]
+            )
+        ).get(f"{self.user_id}")
+
         self._notify_new_member(
-            settings.TEST_EMAIL_FOR_CELERY,
+            email_for_notification,
             created_participant=created_participant,
             project_title=self.instance.title,
         )
@@ -111,7 +130,8 @@ class ManageProjectService(NotificationService):
 
 
 class ManageTaskService(NotificationService):
-    def __init__(self, instance: Task, active_status=None, user_id=None):
+    def __init__(self, request, instance: Task, active_status=None, user_id=None):
+        self.request = request
         self.instance = instance
         self.active_status = active_status
         self.user_id = user_id
@@ -124,9 +144,17 @@ class ManageTaskService(NotificationService):
         _, created_participant = ProjectParticipant.objects.get_or_create(
             project=self.instance.project, participant_id=self.user_id
         )
-        # TODO: получение имейла для нового участника
+
+        email_for_notification = asyncio.run(
+            get_emails_for_notification(
+                ids=[
+                    self.user_id,
+                ]
+            )
+        ).get(f"{self.user_id}")
+
         self._notify_new_member(
-            settings.TEST_EMAIL_FOR_CELERY,
+            email_for_notification,
             created_subscriber=created_subscriber,
             task_title=self.instance.title,
             created_participant=created_participant,
@@ -141,9 +169,17 @@ class ManageTaskService(NotificationService):
             _, created_participant = ProjectParticipant.objects.get_or_create(
                 project=self.instance.project, participant_id=self.instance.executor_id
             )
-            # TODO: получение имейла для нового исполнителя
+
+            email_for_notification = asyncio.run(
+                get_emails_for_notification(
+                    ids=[
+                        self.instance.executor_id,
+                    ]
+                )
+            ).get(f"{self.instance.executor_id}")
+
             self._notify_new_member(
-                settings.TEST_EMAIL_FOR_CELERY_1,
+                email_for_notification,
                 created_subscriber=created_subscriber,
                 task_title=self.instance.title,
                 created_participant=created_participant,
