@@ -26,10 +26,10 @@ class JWTMiddleware(MiddlewareMixin):
                 )
 
                 user = {
-                    'user_pk': payload.get('user_pk'),
+                    'user_pk': int(payload.get('user_pk')),
                     'email': payload.get('sub'),
                 }
-                request.user = user
+                request.user_info = user
 
             except jwt.ExpiredSignatureError:
                 raise AuthenticationFailed('Expired token')
@@ -38,7 +38,7 @@ class JWTMiddleware(MiddlewareMixin):
             except Exception as e:
                 raise AuthenticationFailed(f'Authentication failed: {str(e)}')
         else:
-            request.user = None
+            request.user_info = None
 
         response = self.get_response(request)
 

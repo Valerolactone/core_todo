@@ -1,11 +1,9 @@
-import asyncio
 import logging
 import smtplib
 from datetime import datetime, timedelta
-from itertools import zip_longest
 
 from api.models import Task, TaskNotification, TaskSubscriber
-from api.utils import get_emails_for_notification
+from api.utils import get_emails_for_notification_from_auth
 from celery import shared_task
 from django.conf import settings
 
@@ -98,9 +96,8 @@ def send_task_deadline_notification():
         subscribers = TaskSubscriber.objects.filter(task=task).values_list(
             'subscriber_id', flat=True
         )
-        emails_for_notification = asyncio.run(
-            get_emails_for_notification(ids=subscribers)
-        )
+        emails_for_notification = get_emails_for_notification_from_auth(ids=subscribers)
+
         send_notification_to_all_subscribers(
             emails_for_notification, subject, body, task.task_pk, 'deadline'
         )

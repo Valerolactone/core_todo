@@ -1,5 +1,3 @@
-import asyncio
-
 from api.models import (
     Project,
     ProjectParticipant,
@@ -30,8 +28,7 @@ from api.tasks import (
     send_subscription_on_task_notification,
     send_task_status_update_notification,
 )
-from api.utils import get_emails_for_notification
-from asgiref.sync import sync_to_async
+from api.utils import get_email_for_notification, get_emails_for_notification_from_auth
 from django.db import transaction
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, mixins, status, viewsets
@@ -56,7 +53,7 @@ class ProjectViewSet(
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
         manage_project_service = ManageProjectService(
-            self.request, instance, user_id=self.request.user["user_pk"]
+            self.request, instance, user_id=self.request.user_info.get("user_pk")
         )
         manage_project_service.add_project_participant()
 
@@ -83,7 +80,7 @@ class AdminProjectViewSet(
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
         manage_project_service = ManageProjectService(
-            self.request, instance, user_id=self.request.user["user_pk"]
+            self.request, instance, user_id=self.request.user_info.get("user_pk")
         )
         manage_project_service.add_project_participant()
 
@@ -139,7 +136,7 @@ class TaskViewSet(
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
         manage_task_serviced = ManageTaskService(
-            self.request, instance, user_id=self.request.user["user_pk"]
+            self.request, instance, user_id=self.request.user_info.get("user_pk")
         )
         manage_task_serviced.add_task_subscription()
 
@@ -169,7 +166,7 @@ class AdminTaskViewSet(
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
         manage_task_serviced = ManageTaskService(
-            self.request, instance, user_id=self.request.user["user_pk"]
+            self.request, instance, user_id=self.request.user_info.get("user_pk")
         )
         manage_task_serviced.add_task_subscription()
 
@@ -227,7 +224,7 @@ class TaskStatusUpdateView(UpdateAPIView):
         ids = TaskSubscriber.objects.filter(task=instance).values_list(
             'subscriber_id', flat=True
         )
-        emails_for_notification = asyncio.run(get_emails_for_notification(ids=ids))
+        emails_for_notification = get_emails_for_notification_from_auth(ids=ids)
         send_task_status_update_notification.delay(
             emails_for_notification,
             instance.title,
@@ -288,16 +285,7 @@ class TaskSubscribersViewSet(
 
         self.perform_create(serializer)
 
-        if subscriber_id == self.request.user["user_pk"]:
-            email_for_notification = self.request.user["email"]
-        else:
-            email_for_notification = asyncio.run(
-                get_emails_for_notification(
-                    ids=[
-                        subscriber_id,
-                    ]
-                )
-            ).get(f"{subscriber_id}")
+        email_for_notification = get_email_for_notification(request, subscriber_id)
 
         send_subscription_on_task_notification.delay(email_for_notification, task.title)
 
@@ -335,16 +323,7 @@ class ProjectParticipantsViewSet(
 
         self.perform_create(serializer)
 
-        if participant_id == self.request.user["user_pk"]:
-            email_for_notification = self.request.user["email"]
-        else:
-            email_for_notification = asyncio.run(
-                get_emails_for_notification(
-                    ids=[
-                        participant_id,
-                    ]
-                )
-            ).get(f"{participant_id}")
+        email_for_notification = get_email_for_notification(request, participant_id)
 
         send_join_to_project_notification.delay(email_for_notification, project.title)
 
