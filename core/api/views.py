@@ -27,6 +27,7 @@ from api.tasks import (
     send_join_to_project_notification,
     send_subscription_on_task_notification,
     send_task_status_update_notification,
+    send_task_to_kafka,
 )
 from django.conf import settings
 from django.db import transaction
@@ -52,8 +53,13 @@ class ProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_project_service = ManageProjectService(instance, user_id=1)
+
+        user_id = self.request.user_info.get("user_pk")
+        manage_project_service = ManageProjectService(instance, user_id=user_id)
         manage_project_service.add_project_participant()
+
+        project_data = {"title": instance.title, "participant_id": user_id}
+        send_task_to_kafka.delay(task_data=project_data, key="create_project")
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -77,8 +83,13 @@ class AdminProjectViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_project_service = ManageProjectService(instance, user_id=1)
+
+        user_id = self.request.user_info.get("user_pk")
+        manage_project_service = ManageProjectService(instance, user_id=user_id)
         manage_project_service.add_project_participant()
+
+        project_data = {"title": instance.title, "participant_id": user_id}
+        send_task_to_kafka.delay(task_data=project_data, key="create_project")
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -109,6 +120,9 @@ class AdminProjectActivationView(UpdateAPIView):
 
         self.perform_update(serializer)
 
+        project_data = {"title": instance.title, "is_active": active_status}
+        send_task_to_kafka.delay(task_data=project_data, key="update_project")
+
         return Response(serializer.data)
 
 
@@ -131,8 +145,20 @@ class TaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_task_serviced = ManageTaskService(instance, user_id=1)
+
+        user_id = self.request.user_info.get("user_pk")
+        manage_task_serviced = ManageTaskService(instance, user_id=user_id)
         manage_task_serviced.add_task_subscription()
+
+        task_data = {
+            "title": instance.title,
+            "project_title": instance.project.title,
+            "status": instance.status,
+            "executor_id": instance.executor_id,
+            "assigner_id": user_id,
+        }
+
+        send_task_to_kafka.delay(task_data=task_data, key="create_task")
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -159,8 +185,20 @@ class AdminTaskViewSet(
     @transaction.atomic
     def perform_create(self, serializer, **kwargs):
         instance = serializer.save()
-        manage_task_serviced = ManageTaskService(instance, user_id=1)
+
+        user_id = self.request.user_info.get("user_pk")
+        manage_task_serviced = ManageTaskService(instance, user_id=user_id)
         manage_task_serviced.add_task_subscription()
+
+        task_data = {
+            "title": instance.title,
+            "project_title": instance.project.title,
+            "status": instance.status,
+            "executor_id": instance.executor_id,
+            "assigner_id": user_id,
+        }
+
+        send_task_to_kafka.delay(task_data=task_data, key="create_task")
 
     @transaction.atomic
     def perform_destroy(self, instance):
@@ -188,6 +226,10 @@ class AdminTaskActivationView(UpdateAPIView):
         manage_task_service.update_task_active_status()
 
         self.perform_update(serializer)
+
+        task_data = {"title": instance.title, "is_active": active_status}
+
+        send_task_to_kafka.delay(task_data=task_data, key="update_task")
 
         return Response(serializer.data)
 
@@ -219,6 +261,10 @@ class TaskStatusUpdateView(UpdateAPIView):
             new_status,
         )
 
+        task_data = {"title": instance.title, "status": new_status}
+
+        send_task_to_kafka.delay(task_data=task_data, key="update_task")
+
         return Response(serializer.data)
 
 
@@ -244,6 +290,15 @@ class TaskExecutorUpdateView(UpdateAPIView):
         task_executor_update_service.update_executor()
 
         self.perform_update(serializer)
+
+        task_data = {
+            "title": instance.title,
+            "executor_id": new_executor_id,
+            "assigner_id": self.request.user_info.get("user_pk"),
+            "project_title": instance.project.title,
+        }
+
+        send_task_to_kafka.delay(task_data=task_data, key="update_task")
 
         return Response(serializer.data)
 
@@ -284,6 +339,15 @@ class TaskSubscribersViewSet(
                 settings.TEST_EMAIL_FOR_CELERY, task.project.title
             )
 
+        task_data = {
+            "title": task.title,
+            "executor_id": subscriber_id,
+            "assigner_id": self.request.user_info.get("user_pk"),
+            "project_title": task.project.title,
+        }
+
+        send_task_to_kafka.delay(task_data=task_data, key="update_task")
+
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
@@ -315,6 +379,10 @@ class ProjectParticipantsViewSet(
         send_join_to_project_notification.delay(
             settings.TEST_EMAIL_FOR_CELERY, project.title
         )
+
+        project_data = {"title": project.title, "participant_id": participant_id}
+
+        send_task_to_kafka.delay(task_data=project_data, key="update_project")
 
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
