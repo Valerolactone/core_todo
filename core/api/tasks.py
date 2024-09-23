@@ -8,7 +8,7 @@ from api.models import Task, TaskNotification, TaskSubscriber
 from celery import shared_task
 from django.conf import settings
 
-from core.kafka_producer import AsyncKafkaProducer
+from core.kafka_producer import KafkaProducer
 
 logger = logging.getLogger(__name__)
 
@@ -143,12 +143,9 @@ def send_subscription_on_task_notification(recipient_email: str, task_title: str
 
 @shared_task
 def send_task_to_kafka(task_data: dict, key: str):
-    producer = AsyncKafkaProducer(bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS)
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(
-        producer.send_message(
-            topic='projects_and_related_tasks_topic',
-            key=key,
-            value=task_data,
-        )
+    producer = KafkaProducer(bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS)
+    producer.send_message(
+        topic='projects_and_related_tasks_topic',
+        key=key,
+        value=task_data,
     )

@@ -1,19 +1,19 @@
 import json
+import logging
 
-from aiokafka import AIOKafkaProducer
+from confluent_kafka import Producer
+
+logger = logging.getLogger(__name__)
 
 
-class AsyncKafkaProducer:
+class KafkaProducer:
     def __init__(self, bootstrap_servers: str):
-        self.bootstrap_servers = bootstrap_servers
+        self.producer = Producer({'bootstrap.servers': bootstrap_servers})
 
-    async def send_message(self, topic: str, key: str, value: dict):
-        producer = AIOKafkaProducer(bootstrap_servers=self.bootstrap_servers)
-        await producer.start()
+    def send_message(self, topic: str, key: str, value: dict):
         try:
             message = json.dumps(value).encode('utf-8')
-            await producer.send_and_wait(
-                topic=topic, key=key.encode('utf-8'), value=message
-            )
-        finally:
-            await producer.stop()
+            self.producer.produce(topic=topic, key=key.encode('utf-8'), value=message)
+            self.producer.flush()
+        except Exception as e:
+            logger.error(f"Failed to send message: {e}", exc_info=True)

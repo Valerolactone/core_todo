@@ -15,7 +15,7 @@ django-filter = "^24.2"
 celery = "^5.4.0"
 django-celery-beat = "^2.6.0"
 redis = "^5.0.7"
-aiokafka = "^0.11.0"
+confluent-kafka = "^2.5.3"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.7.1"
