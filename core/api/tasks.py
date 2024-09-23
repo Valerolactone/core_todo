@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import smtplib
 from datetime import datetime, timedelta
@@ -6,6 +7,8 @@ from api.models import Task, TaskNotification, TaskSubscriber
 from api.utils import get_emails_for_notification_from_auth
 from celery import shared_task
 from django.conf import settings
+
+from core.kafka_producer import KafkaProducer
 
 logger = logging.getLogger(__name__)
 
@@ -129,3 +132,13 @@ def send_subscription_on_task_notification(recipient_email: str, task_title: str
         f'We would like to inform you that you have subscribed to Task "{task_title}".'
     )
     send_notification(recipient_email, subject, body)
+
+
+@shared_task
+def send_task_to_kafka(task_data: dict, key: str):
+    producer = KafkaProducer(bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS)
+    producer.send_message(
+        topic='projects_and_related_tasks_topic',
+        key=key,
+        value=task_data,
+    )

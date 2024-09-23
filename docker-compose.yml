@@ -9,6 +9,8 @@ x-environment-defaults: &environment-defaults
   CELERY_BROKER_URL: "redis://redis:6379/0"
   CELERY_RESULT_BACKEND: "redis://redis:6379/0"
   SECRET_KEY: ${SECRET_KEY}
+  KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+
 
 
 services:
@@ -58,7 +60,14 @@ services:
       PYTHONUNBUFFERED: 1
     entrypoint:
       - ./entrypoint.sh
+    networks:
+      - kafka-net
+
 
 volumes:
   pg_data:
+
+networks:
+  kafka-net:
+    external: true
 
