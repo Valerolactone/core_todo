@@ -8,10 +8,14 @@ from api.models import (
     TasksAttachment,
     TaskSubscriber,
 )
-from django.conf import settings
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
+
+
+class RequestMock:
+    def __init__(self, user_info: dict = None):
+        self.user_info = user_info
 
 
 class ProjectTests(APITestCase):
@@ -835,6 +839,13 @@ class TaskAttachmentsViewSetTests(APITestCase):
 
 class ProjectParticipantsViewSetTests(APITestCase):
     def setUp(self):
+        self.client = APIClient()
+        self.request_mock = RequestMock(
+            user_info={
+                "user_pk": 1,
+                "email": "test@example.com",
+            }
+        )
         self.project = Project.objects.create(
             title='Test Project', description='Description for the test project.'
         )
@@ -892,7 +903,12 @@ class ProjectParticipantsViewSetTests(APITestCase):
         )
 
     @patch('api.tasks.send_join_to_project_notification.delay')
-    def test_create_participation(self, mock_send_join_to_project_notification):
+    @patch('api.utils.get_email_for_notification')
+    def test_create_participation(
+        self,
+        mock_send_notification,
+        mock_get_email,
+    ):
         """
         Ensure we can create a new participation.
         """
@@ -901,8 +917,17 @@ class ProjectParticipantsViewSetTests(APITestCase):
             {'project': self.project.project_pk, 'participant_id': 3},
             format='json',
         )
+        mock_get_email.return_value = "notification@example.com"
+
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        mock_send_join_to_project_notification.assert_called_once()
+        self.assertTrue(
+            ProjectParticipant.objects.filter(
+                project=self.project.project_pk, participant_id=3
+            ).exists()
+        )
+        mock_send_notification.assert_called_once_with(
+            "notification@example.com", self.project.title
+        )
 
     def test_update_participation(self):
         """

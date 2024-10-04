@@ -1,10 +1,9 @@
-import asyncio
 import logging
 import smtplib
 from datetime import datetime, timedelta
-from itertools import zip_longest
 
 from api.models import Task, TaskNotification, TaskSubscriber
+from api.utils import get_emails_for_notification_from_auth
 from celery import shared_task
 from django.conf import settings
 
@@ -42,7 +41,11 @@ def send_notification(recipient: str, subject: str, body: str):
 
 
 def send_notification_to_all_subscribers(
-    recipients_dict: dict, subject: str, body: str, task_id: int, notification_type: str
+    recipients_dict: dict,
+    subject: str,
+    body: str,
+    task_id: int,
+    notification_type: str,
 ):
     try:
         with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT) as server:
@@ -92,34 +95,23 @@ def send_task_deadline_notification():
     for task in tasks_due_soon:
         subject = "Task Deadline Notification"
         body = f"There's an hour left until the deadline for task {task.title}."
-        # TODO: получить потом имейлы и переписать логику с zip_longest
         subscribers = TaskSubscriber.objects.filter(task=task).values_list(
             'subscriber_id', flat=True
         )
-        emails = [settings.TEST_EMAIL_FOR_CELERY, settings.TEST_EMAIL_FOR_CELERY_1]
-        recipients_dict = dict(
-            zip_longest(subscribers, emails, fillvalue=settings.TEST_EMAIL_FOR_CELERY)
-        )
+        emails_for_notification = get_emails_for_notification_from_auth(ids=subscribers)
+
         send_notification_to_all_subscribers(
-            recipients_dict, subject, body, task.task_pk, 'deadline'
+            emails_for_notification, subject, body, task.task_pk, 'deadline'
         )
 
 
 @shared_task
 def send_task_status_update_notification(
-    task_title: str, old_status: str, new_status: str
+    recipients_dict: dict[int, str], task_title: str, old_status: str, new_status: str
 ):
     subject = "Task Status Update Notification"
     body = f'You are notified that the status of task "{task_title}" has been changed from "{old_status}" to "{new_status}".'
     task = Task.objects.get(title=task_title)
-    # TODO: получить потом имейлы и переписать логику с zip_longest
-    subscribers = TaskSubscriber.objects.filter(task=task).values_list(
-        'subscriber_id', flat=True
-    )
-    emails = [settings.TEST_EMAIL_FOR_CELERY, settings.TEST_EMAIL_FOR_CELERY_1]
-    recipients_dict = dict(
-        zip_longest(subscribers, emails, fillvalue=settings.TEST_EMAIL_FOR_CELERY)
-    )
     send_notification_to_all_subscribers(
         recipients_dict, subject, body, task.task_pk, 'update status'
     )

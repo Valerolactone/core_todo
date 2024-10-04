@@ -55,6 +55,9 @@ services:
       - "8000:8000"
     depends_on:
       - postgres-db
+      - redis
+      - celery
+      - celery-beat
     environment:
       <<: *environment-defaults
       PYTHONUNBUFFERED: 1

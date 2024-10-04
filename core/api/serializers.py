@@ -1,10 +1,4 @@
-from api.models import (
-    Project,
-    ProjectParticipant,
-    Task,
-    TasksAttachment,
-    TaskSubscriber,
-)
+from api.models import Project, ProjectParticipant, Task, TaskSubscriber
 from rest_framework import serializers
 
 
@@ -99,18 +93,16 @@ class TaskExecutorSerializer(serializers.ModelSerializer):
 
 
 class TaskSubscribersSerializer(serializers.ModelSerializer):
+    task = serializers.PrimaryKeyRelatedField(queryset=Task.objects.all())
+
     class Meta:
         model = TaskSubscriber
         fields = ('task_subscriber_pk', 'task', 'subscriber_id')
 
 
 class ProjectParticipantsSerializer(serializers.ModelSerializer):
+    project = serializers.PrimaryKeyRelatedField(queryset=Project.objects.all())
+
     class Meta:
         model = ProjectParticipant
         fields = ('project_participant_pk', 'project', 'participant_id')
-
-
-class TasksAttachmentsSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = TasksAttachment
-        fields = ('task_attachment_pk', 'task', 'attachment_id')
