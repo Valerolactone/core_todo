@@ -6,7 +6,6 @@ from api.views import (
     ProjectParticipantsViewSet,
     ProjectViewSet,
     TaskExecutorUpdateView,
-    TasksAttachmentsViewSet,
     TaskStatusUpdateView,
     TaskSubscribersViewSet,
     TaskViewSet,
@@ -24,9 +23,6 @@ router.register(
 )
 router.register(
     r'project_participants', ProjectParticipantsViewSet, basename='project_participant'
-)
-router.register(
-    r'task_attachments', TasksAttachmentsViewSet, basename='task_attachment'
 )
 
 urlpatterns = [

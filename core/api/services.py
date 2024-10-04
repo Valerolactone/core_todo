@@ -1,11 +1,11 @@
 from datetime import datetime
 
+from api import utils
 from api.models import Project, ProjectParticipant, Task, TaskSubscriber
 from api.tasks import (
     send_join_to_project_notification,
     send_subscription_on_task_notification,
 )
-from api.utils import get_email_for_notification
 
 
 class NotificationService:
@@ -41,7 +41,7 @@ class NotificationService:
         ), None
 
         email_for_notification = (
-            get_email_for_notification(request, user_pk)
+            utils.get_email_for_notification(request, user_pk)
             if created_subscriber or created_participant
             else None
         )

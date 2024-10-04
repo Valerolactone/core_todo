@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import smtplib
 from datetime import datetime, timedelta

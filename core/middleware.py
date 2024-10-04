@@ -1,5 +1,6 @@
 import jwt
 from django.conf import settings
+from django.core.cache import cache
 from django.utils.deprecation import MiddlewareMixin
 from rest_framework.exceptions import AuthenticationFailed
 
@@ -25,11 +26,26 @@ class JWTMiddleware(MiddlewareMixin):
                     token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
                 )
 
-                user = {
-                    'user_pk': int(payload.get('user_pk')),
-                    'email': payload.get('sub'),
-                }
-                request.user_info = user
+                user_pk = payload.get('user_pk')
+                cache_key = f"user_profile_{user_pk}"
+                cached_user_info = cache.get(cache_key)
+
+                if cached_user_info:
+                    request.user_info = cached_user_info
+                else:
+                    full_user_info = {
+                        'user_pk': int(user_pk),
+                        'email': payload.get('sub'),
+                        'role': payload.get('role'),
+                        'first_name': payload.get('first_name'),
+                        'last_name': payload.get('last_name'),
+                    }
+                    request.user_info = full_user_info
+
+                    user_info = full_user_info.copy()
+                    user_info.pop('user_pk', None)
+
+                    cache.set(cache_key, user_info)
 
             except jwt.ExpiredSignatureError:
                 raise AuthenticationFailed('Expired token')
