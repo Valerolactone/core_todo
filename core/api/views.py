@@ -175,10 +175,8 @@ class TaskViewSet(
         user_id = self._get_user_pk()
 
         instance = serializer.save(creator_id=user_id)
-        manage_task_serviced = ManageTaskService(
-            self.request, instance, user_id=user_id
-        )
-        manage_task_serviced.add_task_subscription()
+        manage_task_service = ManageTaskService(self.request, instance, user_id=user_id)
+        manage_task_service.add_task_subscription()
 
         task_data = {
             "title": instance.title,
@@ -201,8 +199,8 @@ class TaskViewSet(
     def perform_destroy(self, instance):
         self._check_task_creator_permission(instance)
 
-        manage_task_serviced = ManageTaskService(self.request, instance)
-        manage_task_serviced.deactivate_task()
+        manage_task_service = ManageTaskService(self.request, instance)
+        manage_task_service.deactivate_task()
 
 
 class AdminTaskViewSet(
@@ -227,10 +225,8 @@ class AdminTaskViewSet(
         user_id = self.request.user_info.get("user_pk")
 
         instance = serializer.save(creator_id=user_id)
-        manage_task_serviced = ManageTaskService(
-            self.request, instance, user_id=user_id
-        )
-        manage_task_serviced.add_task_subscription()
+        manage_task_service = ManageTaskService(self.request, instance, user_id=user_id)
+        manage_task_service.add_task_subscription()
 
         task_data = {
             "title": instance.title,
@@ -244,8 +240,8 @@ class AdminTaskViewSet(
 
     @transaction.atomic
     def perform_destroy(self, instance):
-        manage_task_serviced = ManageTaskService(self.request, instance)
-        manage_task_serviced.deactivate_task()
+        manage_task_service = ManageTaskService(self.request, instance)
+        manage_task_service.deactivate_task()
 
 
 class AdminTaskActivationView(UpdateAPIView):
