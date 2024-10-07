@@ -109,7 +109,7 @@ class ProjectTestsAsAdmin(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_read_nonexistent_project(self):
-        nonexistent_project_id = 999
+        nonexistent_project_id = 0
         response = self.client.get(
             reverse('admin_project-detail', kwargs={'pk': nonexistent_project_id})
         )
@@ -450,7 +450,7 @@ class ProjectTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_read_nonexistent_project(self):
-        nonexistent_project_id = 999
+        nonexistent_project_id = 0
 
         response = self.client.get(
             reverse('project-detail', kwargs={'pk': nonexistent_project_id})
@@ -699,7 +699,7 @@ class TaskTestsAsAdmin(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_read_nonexistent_task(self):
-        nonexistent_task_id = 999
+        nonexistent_task_id = 0
         response = self.client.get(
             reverse('admin_task-detail', kwargs={'pk': nonexistent_task_id})
         )
@@ -1051,7 +1051,7 @@ class TaskTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_read_nonexistent_task(self):
-        nonexistent_task_id = 999
+        nonexistent_task_id = 0
 
         response = self.client.get(
             reverse('task-detail', kwargs={'pk': nonexistent_task_id})
@@ -1417,7 +1417,7 @@ class TaskSubscribersViewSetTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_read_nonexistent_subscription(self):
-        nonexistent_pk = 999
+        nonexistent_pk = 0
         response = self.client.get(
             reverse('task_subscription-detail', kwargs={'pk': nonexistent_pk})
         )
