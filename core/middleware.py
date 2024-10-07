@@ -6,16 +6,12 @@ from rest_framework.exceptions import AuthenticationFailed
 
 
 class JWTMiddleware(MiddlewareMixin):
-    def __init__(self, get_response):
-        super().__init__(get_response)
-        self.get_response = get_response
-
     def __call__(self, request):
         auth_header = request.headers.get('Authorization')
 
         if auth_header:
             try:
-                scheme, token = auth_header.split(' ')
+                scheme, token = auth_header.split(' ', 1)
 
                 if scheme.lower() != 'bearer':
                     raise AuthenticationFailed(
@@ -34,18 +30,14 @@ class JWTMiddleware(MiddlewareMixin):
                     request.user_info = cached_user_info
                 else:
                     full_user_info = {
-                        'user_pk': int(user_pk),
+                        'user_pk': user_pk,
                         'email': payload.get('sub'),
                         'role': payload.get('role'),
                         'first_name': payload.get('first_name'),
                         'last_name': payload.get('last_name'),
                     }
                     request.user_info = full_user_info
-
-                    user_info = full_user_info.copy()
-                    user_info.pop('user_pk', None)
-
-                    cache.set(cache_key, user_info)
+                    cache.set(cache_key, full_user_info)
 
             except jwt.ExpiredSignatureError:
                 raise AuthenticationFailed('Expired token')

@@ -59,7 +59,9 @@ class ProjectViewSet(
         user_id = self._get_user_pk()
 
         instance = serializer.save(creator_id=user_id)
-        manage_project_service = ManageProjectService(instance, user_id=user_id)
+        manage_project_service = ManageProjectService(
+            self.request, instance, user_id=user_id
+        )
         manage_project_service.add_project_participant()
 
         project_data = {"title": instance.title, "participant_id": user_id}
@@ -99,7 +101,9 @@ class AdminProjectViewSet(
         user_id = self.request.user_info.get("user_pk")
 
         instance = serializer.save(creator_id=user_id)
-        manage_project_service = ManageProjectService(instance, user_id=user_id)
+        manage_project_service = ManageProjectService(
+            self.request, instance, user_id=user_id
+        )
         manage_project_service.add_project_participant()
 
         project_data = {"title": instance.title, "participant_id": user_id}
@@ -171,7 +175,9 @@ class TaskViewSet(
         user_id = self._get_user_pk()
 
         instance = serializer.save(creator_id=user_id)
-        manage_task_serviced = ManageTaskService(instance, user_id=user_id)
+        manage_task_serviced = ManageTaskService(
+            self.request, instance, user_id=user_id
+        )
         manage_task_serviced.add_task_subscription()
 
         task_data = {
@@ -221,7 +227,9 @@ class AdminTaskViewSet(
         user_id = self.request.user_info.get("user_pk")
 
         instance = serializer.save(creator_id=user_id)
-        manage_task_serviced = ManageTaskService(instance, user_id=user_id)
+        manage_task_serviced = ManageTaskService(
+            self.request, instance, user_id=user_id
+        )
         manage_task_serviced.add_task_subscription()
 
         task_data = {
@@ -382,11 +390,11 @@ class TaskSubscribersViewSet(
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        task_pk = serializer.validated_data.get('task')
+        task = serializer.validated_data.get('task')
         subscriber_id = serializer.validated_data.get('subscriber_id')
 
         if TaskSubscriber.objects.filter(
-            task=task_pk, subscriber_id=subscriber_id
+            task=task.task_pk, subscriber_id=subscriber_id
         ).exists():
             return Response(serializer.data)
 
@@ -395,8 +403,6 @@ class TaskSubscribersViewSet(
         email_for_notification = utils.get_email_for_notification(
             request, subscriber_id
         )
-
-        task = Task.objects.get(task_pk=task_pk)
 
         send_subscription_on_task_notification.delay(email_for_notification, task.title)
 
@@ -434,11 +440,11 @@ class ProjectParticipantsViewSet(
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        project_pk = serializer.validated_data.get('project')
+        project = serializer.validated_data.get('project')
         participant_id = serializer.validated_data.get('participant_id')
 
         if ProjectParticipant.objects.filter(
-            project=project_pk, participant_id=participant_id
+            project=project.project_pk, participant_id=participant_id
         ).exists():
             return Response(serializer.data)
 
@@ -448,7 +454,7 @@ class ProjectParticipantsViewSet(
             request, participant_id
         )
 
-        project_title = Project.objects.get(project_pk=project_pk).title
+        project_title = Project.objects.get(project_pk=project.project_pk).title
         send_join_to_project_notification.delay(email_for_notification, project_title)
 
         project_data = {"title": project_title, "participant_id": participant_id}

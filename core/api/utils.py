@@ -31,6 +31,7 @@ def get_emails_for_notification_from_auth(ids: list[int]) -> dict:
 
                 for pk, user_info in response.json().items():
                     users[pk] = user_info["email"]
+                    user_info["user_pk"] = pk
                     cache.set(f"user_profile_{pk}", user_info)
 
         except HTTPStatusError as e:
