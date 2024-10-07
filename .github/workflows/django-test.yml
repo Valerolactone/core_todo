@@ -68,6 +68,8 @@ jobs:
         DB_NAME: ${{ secrets.POSTGRES_DB }}
         DB_USER: ${{ secrets.POSTGRES_USER }}
         DB_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
       run: |
         cd core
         poetry run python manage.py test --settings=core.settings.ci_cd
