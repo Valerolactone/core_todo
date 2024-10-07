@@ -1270,23 +1270,6 @@ class TaskStatusUpdateViewTest(APITestCase):
 
         self.url = reverse("task_status_update", kwargs={"pk": self.user_task.task_pk})
 
-    # @patch("api.tasks.send_task_status_update_notification.delay")
-    # @patch("api.tasks.send_task_to_kafka.delay")
-    # def test_task_status_update_success(self, mock_send_task_to_kafka, mock_send_task_status_update_notification):
-    #     self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.admin_token}')
-    #
-    #     data = {"status": "in_progress"}
-    #     response = self.client.patch(self.url, data, format="json")
-    #
-    #     self.user_task.refresh_from_db()
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(self.user_task.status, "in_progress")
-    #
-    #     mock_send_task_status_update_notification.assert_called_once()
-    #     mock_send_task_to_kafka.assert_called_once_with(
-    #         task_data={"title": self.user_task.title, "status": "in_progress"}, key="update_task"
-    #     )
-
     def test_task_status_update_permission_denied(self):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_1_token}')
 
@@ -1294,21 +1277,6 @@ class TaskStatusUpdateViewTest(APITestCase):
         response = self.client.patch(self.url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    # @patch("api.tasks.send_task_status_update_notification.delay")
-    # @patch("api.tasks.send_task_to_kafka.delay")
-    # def test_task_status_no_change(self, mock_send_task_to_kafka, mock_send_task_status_update_notification):
-    #     self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token}')
-    #
-    #     data = {"status": self.user_task.status}
-    #     response = self.client.patch(self.url, data, format="json")
-    #
-    #     self.user_task.refresh_from_db()
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(self.user_task.status, "open")
-    #
-    #     mock_send_task_status_update_notification.assert_not_called()
-    #     mock_send_task_to_kafka.assert_not_called()
 
 
 class TaskExecutorUpdateViewTest(APITestCase):
@@ -1370,28 +1338,6 @@ class TaskExecutorUpdateViewTest(APITestCase):
             "task_executor_update", kwargs={"pk": self.user_task.task_pk}
         )
 
-    # @patch("api.tasks.send_task_to_kafka.delay")
-    # def test_task_executor_update_success(self, mock_send_task_to_kafka):
-    #     self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token}')
-    #
-    #     new_executor_id = self.user_1['user_pk']
-    #     data = {"executor_id": new_executor_id}
-    #     response = self.client.patch(self.url, data, format="json")
-    #
-    #     self.user_task.refresh_from_db()
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(self.user_task.executor_id, new_executor_id)
-    #
-    #     mock_send_task_to_kafka.assert_called_once_with(
-    #         task_data={
-    #             "title": self.user_task.title,
-    #             "executor_id": new_executor_id,
-    #             "assigner_id": self.user['user_pk'],
-    #             "project_title": self.user_task.project_title,
-    #         },
-    #         key="update_task"
-    #     )
-
     def test_task_executor_update_permission_denied(self):
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_1_token}')
 
@@ -1400,19 +1346,6 @@ class TaskExecutorUpdateViewTest(APITestCase):
         response = self.client.patch(self.url, data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
-    # @patch("api.tasks.send_task_to_kafka.delay")
-    # def test_task_executor_no_change(self, mock_send_task_to_kafka):
-    #     self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {self.user_token}')
-    #
-    #     data = {"executor_id": self.user_1['user_pk']}
-    #     response = self.client.patch(self.url, data, format="json")
-    #
-    #     self.user_task.refresh_from_db()
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-    #     self.assertEqual(self.user_task.executor_id, self.user['user_pk'])
-    #
-    #     mock_send_task_to_kafka.assert_not_called()
 
 
 class TaskSubscribersViewSetTests(APITestCase):
@@ -1517,8 +1450,10 @@ class TaskSubscribersViewSetTests(APITestCase):
     @patch('api.tasks.send_subscription_on_task_notification.delay')
     @patch('api.tasks.send_join_to_project_notification.delay')
     @patch('api.utils.get_email_for_notification')
+    @patch('api.tasks.send_task_to_kafka.delay')
     def test_create_subscription(
         self,
+        mock_send_task_to_kafka,
         mock_get_email_for_notification,
         mock_send_subscription_on_task_notification,
         mock_send_join_to_project_notification,
@@ -1534,6 +1469,7 @@ class TaskSubscribersViewSetTests(APITestCase):
 
         mock_send_subscription_on_task_notification.assert_called_once()
         mock_send_join_to_project_notification.assert_called_once()
+        mock_send_task_to_kafka.assert_called_once()
 
     def test_update_subscription(self):
         response = self.client.patch(
@@ -1635,7 +1571,10 @@ class ProjectParticipantsViewSetTests(APITestCase):
 
     @patch('api.tasks.send_join_to_project_notification.delay')
     @patch('api.utils.get_email_for_notification')
-    def test_create_participation(self, mock_get_email, mock_send_notification):
+    @patch('api.tasks.send_task_to_kafka.delay')
+    def test_create_participation(
+        self, mock_send_task_to_kafka, mock_get_email, mock_send_notification
+    ):
         mock_get_email.return_value = "notification@example.com"
 
         response = self.client.post(
@@ -1654,6 +1593,7 @@ class ProjectParticipantsViewSetTests(APITestCase):
             "notification@example.com", self.project.title
         )
         mock_get_email.assert_called_once()
+        mock_send_task_to_kafka.assert_called_once()
 
     def test_update_participation(self):
         response = self.client.patch(
